@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}{{ generation_name }}{% endblock %}
+
+{% block content %}
+<main class="page">
+    <section class="hero-box">
+        <p class="hero-kicker">Generazione</p>
+        <h1>{{ generation_name }}</h1>
+        <p class="hero-subtitle">{{ generation_range }}</p>
+        <p class="hero-text">{{ generation_description }}</p>
+    </section>
+
+    <section class="search-box">
+        <h2>Cerca in {{ generation_name }}</h2>
+        <p>La ricerca e la griglia qui sotto mostrano solo Pokemon di questa generazione.</p>
+
+        <form method="get" action="/pokedex">
+            <input type="text" name="pokemon" placeholder="Es. bulbasaur o 25" value="{{ query }}">
+            <button type="submit">Cerca</button>
+        </form>
+
+        {% if error %}
+        <div class="message error">{{ error }}</div>
+        {% endif %}
+    </section>
+
+    <section class="generation-box">
+        <div class="section-heading">
+            <h2>{{ generation_name }}</h2>
+            <p>Griglia completa degli sprite della pagina.</p>
+        </div>
+
+        <div class="pokemon-grid">
+            {% for item in pokemon_list %}
+            <a class="pokemon-grid-card" href="/pokedex?pokemon={{ item.id }}">
+                <img src="{{ item.sprite }}" alt="{{ item.name }}">
+                <strong>#{{ item.id }}</strong>
+                <span>{{ item.name }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+</main>
+{% endblock %}

@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Pokedex{% endblock %}
+
+{% block content %}
+<main class="page pokedex-page">
+    <section class="hero-box pokedex-intro">
+        <p class="hero-kicker">Modalita Pokedex</p>
+        <h1>MyDex</h1>
+        <p class="hero-subtitle">Cerca un Pokemon e scorri il Pokedex con i controlli precedente e successivo.</p>
+    </section>
+
+    <section class="search-box pokedex-search-box">
+        <h2>Apri un Pokemon nel Pokedex</h2>
+        <p>Inserisci nome o numero per entrare direttamente nella scheda dedicata.</p>
+
+        <form method="get" action="/pokedex">
+            <input type="text" name="pokemon" placeholder="Es. pikachu o 25" value="{{ query }}">
+            <button type="submit">Apri</button>
+        </form>
+
+        {% if error %}
+        <div class="message error">{{ error }}</div>
+        {% endif %}
+    </section>
+
+    {% if pokemon %}
+    <section class="pokedex-shell" id="pokedex-view">
+        <div class="pokedex-left">
+            <div class="pokedex-top-lights">
+                <span class="lens"></span>
+                <span class="light red"></span>
+                <span class="light yellow"></span>
+                <span class="light green"></span>
+            </div>
+
+            <div class="pokedex-screen-frame">
+                <div class="screen-leds">
+                    <span></span>
+                    <span></span>
+                </div>
+                <div class="pokedex-screen">
+                    <img src="{{ pokemon.image }}" alt="{{ pokemon.name }}">
+                </div>
+                <div class="screen-bottom">
+                    <span class="screen-dot"></span>
+                    <span class="screen-lines"></span>
+                </div>
+            </div>
+
+            <div class="pokedex-left-bottom">
+                <div class="pokedex-control-row">
+                    {% if previous_id %}
+                    <a class="dex-nav-button" href="/pokedex?pokemon={{ previous_id }}#pokedex-view">Precedente</a>
+                    {% else %}
+                    <span class="dex-nav-button disabled">Precedente</span>
+                    {% endif %}
+
+                    {% if next_id %}
+                    <a class="dex-nav-button" href="/pokedex?pokemon={{ next_id }}#pokedex-view">Successivo</a>
+                    {% else %}
+                    <span class="dex-nav-button disabled">Successivo</span>
+                    {% endif %}
+                </div>
+
+                <div class="pokedex-ornaments">
+                    <span class="joy-stick"></span>
+                    <span class="wide-button red"></span>
+                    <span class="wide-button blue"></span>
+                    <span class="dpad"></span>
+                </div>
+
+                <div class="pokedex-mini-screen">
+                    #{{ pokemon.id }} {{ pokemon.name }}
+                </div>
+            </div>
+        </div>
+
+        <div class="pokedex-spine"></div>
+
+        <div class="pokedex-right">
+            <div class="pokedex-right-screen">
+                <span class="pokemon-id">#{{ pokemon.id }}</span>
+                <h2>{{ pokemon.name }}</h2>
+                <p>{{ pokemon.description }}</p>
+            </div>
+
+            <div class="pokedex-right-grid">
+                <div class="dex-info-cards">
+                    <div class="dex-info-card">
+                        <span class="dex-card-label">Tipi</span>
+                        <div class="chips type-chips">
+                            {% for item in pokemon.types %}
+                            <span class="type-chip" style="--type-color: {{ item.color }};">
+                                <img src="{{ item.icon }}" alt="{{ item.name }}">
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="info-grid">
+                        <div>
+                            <strong>Altezza</strong>
+                            <span>{{ pokemon.height }} m</span>
+                        </div>
+                        <div>
+                            <strong>Peso</strong>
+                            <span>{{ pokemon.weight }} kg</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dex-section">
+                    <h3>Abilita</h3>
+                    <div class="ability-grid">
+                        {% for item in pokemon.abilities %}
+                        <button
+                            class="ability-card"
+                            type="button"
+                            data-ability-name="{{ item.name }}"
+                            data-ability-slug="{{ item.slug }}"
+                        >
+                            {{ item.name }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="dex-section">
+                    <h3>Statistiche</h3>
+                    <div class="stats dex-stats">
+                        {% for stat in pokemon.stats %}
+                        <div class="stat-row dex-stat-row">
+                            <span class="dex-stat-name">{{ stat.name }}</span>
+                            <div class="dex-stat-bar-track">
+                                <span class="dex-stat-bar-fill" style="width: {{ stat.bar_width }}%; background: {{ stat.color }};"></span>
+                            </div>
+                            <strong class="dex-stat-value">{{ stat.value }}</strong>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="dex-total-row">
+                        <span>Totale</span>
+                        <strong>{{ pokemon.total_stats }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="ability-modal" id="ability-modal" hidden>
+        <div class="ability-modal-backdrop" data-close-modal="true"></div>
+        <div class="ability-modal-card" role="dialog" aria-modal="true" aria-labelledby="ability-modal-title">
+            <button class="ability-close" type="button" data-close-modal="true">x</button>
+            <p class="hero-kicker">Abilita</p>
+            <h3 id="ability-modal-title">Dettagli abilita</h3>
+            <p class="ability-short" id="ability-modal-short">Caricamento...</p>
+            <p class="ability-effect" id="ability-modal-effect"></p>
+        </div>
+    </div>
+    {% endif %}
+</main>
+{% if pokemon %}
+<script>
+window.addEventListener("load", function () {
+    var pokedexView = document.getElementById("pokedex-view");
+    if (pokedexView) {
+        pokedexView.scrollIntoView({ behavior: "auto", block: "center" });
+    }
+
+    var modal = document.getElementById("ability-modal");
+    var modalTitle = document.getElementById("ability-modal-title");
+    var modalShort = document.getElementById("ability-modal-short");
+    var modalEffect = document.getElementById("ability-modal-effect");
+
+    function closeModal() {
+        modal.hidden = true;
+        document.body.classList.remove("modal-open");
+    }
+
+    function openModal() {
+        modal.hidden = false;
+        document.body.classList.add("modal-open");
+    }
+
+    document.querySelectorAll(".ability-card").forEach(function (button) {
+        button.addEventListener("click", function () {
+            var slug = button.dataset.abilitySlug;
+            var name = button.dataset.abilityName;
+
+            modalTitle.textContent = name;
+            modalShort.textContent = "Caricamento...";
+            modalEffect.textContent = "";
+            openModal();
+
+            fetch("/api/ability/" + slug)
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    if (data.error) {
+                        modalShort.textContent = data.error;
+                        return;
+                    }
+
+                    modalTitle.textContent = data.name;
+                    modalShort.textContent = data.short_effect;
+                    modalEffect.textContent = data.effect;
+                })
+                .catch(function () {
+                    modalShort.textContent = "Errore durante il caricamento dell'abilita.";
+                });
+        });
+    });
+
+    modal.addEventListener("click", function (event) {
+        if (event.target.dataset.closeModal === "true") {
+            closeModal();
+        }
+    });
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && !modal.hidden) {
+            closeModal();
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}
