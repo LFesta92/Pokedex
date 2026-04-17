@@ -3,18 +3,30 @@
 {% block title %}{{ generation_name }}{% endblock %}
 
 {% block content %}
-<main class="page">
-    <section class="hero-box">
-        <h1>{{ generation_name }}</h1>
-        <p class="hero-subtitle">{{ generation_range }}</p>
-        <p class="hero-text">{{ generation_description }}</p>
+<main class="page generation-page">
+    <section class="generation-hero">
+        <div class="generation-title-row">
+            {% if previous_card %}
+            <a class="generation-arrow" href="/{{ previous_card.href }}" aria-label="Vai a {{ previous_card.label }}">&#8249;</a>
+            {% else %}
+            <span class="generation-arrow disabled">&#8249;</span>
+            {% endif %}
+
+            <h1 class="home-title generation-title">{{ generation_name }}</h1>
+
+            {% if next_card %}
+            <a class="generation-arrow" href="/{{ next_card.href }}" aria-label="Vai a {{ next_card.label }}">&#8250;</a>
+            {% else %}
+            <span class="generation-arrow disabled">&#8250;</span>
+            {% endif %}
+        </div>
     </section>
 
     <section class="search-box">
         <h2>Cerca in {{ generation_name }}</h2>
         <p>La ricerca e la griglia qui sotto mostrano solo Pokemon di questa generazione.</p>
 
-        <form method="get" action="/pokedex">
+        <form method="get" action="{{ action_path }}">
             <input type="text" name="pokemon" placeholder="Es. bulbasaur o 25" value="{{ query }}">
             <button type="submit">Cerca</button>
         </form>
@@ -27,15 +39,14 @@
     <section class="generation-box">
         <div class="section-heading">
             <h2>{{ generation_name }}</h2>
-            <p>Griglia completa degli sprite della pagina.</p>
         </div>
 
         <div class="pokemon-grid">
             {% for item in pokemon_list %}
             <a class="pokemon-grid-card" href="/pokedex?pokemon={{ item.id }}">
+                <strong class="pokemon-grid-id">#{{ item.id }}</strong>
                 <img src="{{ item.sprite }}" alt="{{ item.name }}">
-                <strong>#{{ item.id }}</strong>
-                <span>{{ item.name }}</span>
+                <span class="generation-pokemon-name">{{ item.name }}</span>
             </a>
             {% endfor %}
         </div>

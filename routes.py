@@ -51,6 +51,14 @@ TYPE_COLORS = {
     "steel": "#b7b7ce",
     "fairy": "#d685ad",
 }
+FORM_LABELS = {
+    "-alola": "Forma Alola",
+    "-hisui": "Forma Hisui",
+    "-mega-x": "Mega X",
+    "-mega-y": "Mega Y",
+    "-mega": "Mega",
+    "-gmax": "Giga-Max",
+}
 STAT_STYLES = {
     "hp": {"label": "PS", "color": "#7de33b"},
     "attack": {"label": "Attacco", "color": "#f3cb2f"},
@@ -70,9 +78,13 @@ GENERATION_CARDS = [
     {"label": "Gen VIII / Galar", "image": "img/galar.png", "href": "gen8.html", "start": 810, "end": 905},
     {"label": "Gen IX / Paldea", "image": "img/paldea.png", "href": "gen9.html", "start": 906, "end": 1035},
     {"label": "Leggende / Hisui", "image": "img/hisui-new.png", "href": "hisui.html"},
-    {"label": "Forme Alola", "image": "img/alola.png", "href": "alola-forms.html"},
+    {"label": "Forme Alola", "image": "img/alola-forms.png", "href": "alola-forms.html"},
     {"label": "Forme Mega", "image": "img/megavenusaur.png", "href": "mega-forms.html"},
     {"label": "Forme Giga-Max", "image": "img/gigamax.png", "href": "gigamax-forms.html"},
+]
+GAME_CARDS = [
+    {"label": "Zona Safari", "image": "img/catturali-tutti.png"},
+    {"label": "Torre Lotta", "image": "img/vs.png"},
 ]
 
 
@@ -95,6 +107,10 @@ def fetch_json(url, params=None):
 
 def clean_text(value):
     return value.replace("\n", " ").replace("\f", " ")
+
+
+def normalize_search_query(value):
+    return "-".join(value.strip().lower().split())
 
 
 def get_localized_value(entries, language, value_key):
@@ -254,6 +270,112 @@ def get_pokemon_by_ids(pokemon_ids):
     return pokemon_list
 
 
+def is_special_form_name(name):
+    return any(keyword in name for keyword in FORM_LABELS)
+
+
+def get_form_display_label(variety_name, default_name):
+    if variety_name == default_name:
+        return "Forma Base"
+
+    for keyword, label in FORM_LABELS.items():
+        if keyword in variety_name:
+            return label
+
+    return variety_name.replace(default_name, "").replace("-", " ").strip().title() or "Forma Speciale"
+
+
+def get_generation_display_name(generation_name):
+    if generation_name.startswith("Gen ") and "/" in generation_name:
+        return generation_name.split("/", 1)[1].strip()
+    return generation_name
+
+
+def get_generation_navigation(page_name):
+    hrefs = [card["href"] for card in GENERATION_CARDS]
+    if page_name.startswith("/"):
+        page_name = page_name[1:]
+    if page_name not in hrefs:
+        return None, None
+
+    index = hrefs.index(page_name)
+    previous_card = GENERATION_CARDS[index - 1]
+    next_card = GENERATION_CARDS[(index + 1) % len(GENERATION_CARDS)]
+    return previous_card, next_card
+
+
+def get_form_choices_for_species(species_name):
+    species = fetch_json(f"{POKEAPI_BASE_URL}/pokemon-species/{species_name}")
+    choices = []
+
+    for variety in species.get("varieties", []):
+        pokemon_name = variety["pokemon"]["name"]
+        include = variety.get("is_default", False) or is_special_form_name(pokemon_name)
+        if not include:
+            continue
+
+        summary = get_pokemon_summary(pokemon_name)
+        sprite_exists = (SPRITES_DIR / f"{summary['id']}.png").exists()
+        if not sprite_exists:
+            continue
+
+        choices.append(
+            {
+                "id": summary["id"],
+                "name": summary["name"],
+                "sprite": summary["sprite"],
+                "label": get_form_display_label(pokemon_name, species_name),
+            }
+        )
+
+    choices.sort(key=lambda item: item["id"])
+    return choices
+
+
+def resolve_search(query):
+    normalized_query = normalize_search_query(query)
+
+    if not normalized_query:
+        return {"status": "empty"}
+
+    if normalized_query.isdigit():
+        try:
+            pokemon = get_pokemon_summary(normalized_query)
+            return {"status": "direct", "pokemon_id": pokemon["id"]}
+        except error.HTTPError:
+            return {"status": "error", "message": "Pokemon non trovato. Riprova."}
+        except Exception:
+            return {"status": "error", "message": "Errore durante la richiesta a PokeAPI."}
+
+    if is_special_form_name(normalized_query):
+        try:
+            pokemon = get_pokemon_summary(normalized_query)
+            return {"status": "direct", "pokemon_id": pokemon["id"]}
+        except error.HTTPError:
+            return {"status": "error", "message": "Pokemon non trovato. Riprova."}
+        except Exception:
+            return {"status": "error", "message": "Errore durante la richiesta a PokeAPI."}
+
+    try:
+        choices = get_form_choices_for_species(normalized_query)
+        if len(choices) > 1:
+            return {"status": "choice", "species": normalized_query, "choices": choices}
+        if len(choices) == 1:
+            return {"status": "direct", "pokemon_id": choices[0]["id"]}
+    except error.HTTPError:
+        pass
+    except Exception:
+        return {"status": "error", "message": "Errore durante la richiesta a PokeAPI."}
+
+    try:
+        pokemon = get_pokemon_summary(normalized_query)
+        return {"status": "direct", "pokemon_id": pokemon["id"]}
+    except error.HTTPError:
+        return {"status": "error", "message": "Pokemon non trovato. Riprova."}
+    except Exception:
+        return {"status": "error", "message": "Errore durante la richiesta a PokeAPI."}
+
+
 def get_adjacent_pokemon_ids(pokemon_id):
     previous_id = pokemon_id - 1 if pokemon_id > 1 else None
     next_id = pokemon_id + 1 if pokemon_id < MAX_POKEDEX_ID else None
@@ -283,25 +405,53 @@ def ability_details(slug):
 @main_blueprint.route("/")
 def home():
     query = request.args.get("pokemon", "").strip()
+    error_message = None
 
     if query:
-        return redirect(url_for("main.pokedex", pokemon=query) + "#pokedex-view")
+        search_result = resolve_search(query)
+        if search_result["status"] == "direct":
+            return redirect(url_for("main.pokedex", pokemon=search_result["pokemon_id"]) + "#pokedex-view")
+        if search_result["status"] == "choice":
+            return redirect(url_for("main.choose_form", pokemon=query))
+        if search_result["status"] == "error":
+            error_message = search_result["message"]
 
     return render_template(
         "home.html",
         query=query,
-        error=None,
+        error=error_message,
         generations=GENERATION_CARDS,
+        games=GAME_CARDS,
     )
 
 
 @main_blueprint.route("/pokedex")
 def pokedex():
-    query = request.args.get("pokemon", "").strip() or "1"
+    raw_query = request.args.get("pokemon", "").strip()
     error_message = None
     pokemon = None
     previous_id = None
     next_id = None
+    query = raw_query or "1"
+
+    if raw_query:
+        search_result = resolve_search(raw_query)
+        if search_result["status"] == "choice":
+            return redirect(url_for("main.choose_form", pokemon=raw_query))
+        if search_result["status"] == "error":
+            return render_template(
+                "pokedex.html",
+                query=raw_query,
+                error=search_result["message"],
+                pokemon=None,
+                previous_id=None,
+                next_id=None,
+            )
+
+        resolved_id = str(search_result["pokemon_id"])
+        if normalize_search_query(raw_query) != resolved_id:
+            return redirect(url_for("main.pokedex", pokemon=resolved_id) + "#pokedex-view")
+        query = resolved_id
 
     try:
         pokemon = get_pokemon(query.lower())
@@ -321,13 +471,47 @@ def pokedex():
     )
 
 
+@main_blueprint.route("/choose-form")
+def choose_form():
+    query = request.args.get("pokemon", "").strip()
+    if not query:
+        return redirect(url_for("main.home"))
+
+    search_result = resolve_search(query)
+    if search_result["status"] == "direct":
+        return redirect(url_for("main.pokedex", pokemon=search_result["pokemon_id"]) + "#pokedex-view")
+    if search_result["status"] == "error":
+        return render_template(
+            "form-choice.html",
+            query=query,
+            error=search_result["message"],
+            choices=[],
+            species_name=query.title(),
+        )
+
+    return render_template(
+        "form-choice.html",
+        query=query,
+        error=None,
+        choices=search_result.get("choices", []),
+        species_name=search_result.get("species", query).replace("-", " ").title(),
+    )
+
+
 def render_generation_page(generation_name, start_id, end_id, page_name, pokemon_ids=None, range_label=None, description=None):
     query = request.args.get("pokemon", "").strip()
+    error_message = None
+    generation_title = get_generation_display_name(generation_name)
+    previous_card, next_card = get_generation_navigation(page_name)
 
     if query:
-        return redirect(url_for("main.pokedex", pokemon=query) + "#pokedex-view")
-
-    error_message = None
+        search_result = resolve_search(query)
+        if search_result["status"] == "direct":
+            return redirect(url_for("main.pokedex", pokemon=search_result["pokemon_id"]) + "#pokedex-view")
+        if search_result["status"] == "choice":
+            return redirect(url_for("main.choose_form", pokemon=query))
+        if search_result["status"] == "error":
+            error_message = search_result["message"]
 
     try:
         if pokemon_ids is not None:
@@ -346,9 +530,11 @@ def render_generation_page(generation_name, start_id, end_id, page_name, pokemon
 
     return render_template(
         "generation.html",
-        generation_name=generation_name,
+        generation_name=generation_title,
         generation_range=range_label or f"Tutti i Pokemon da {start_id} a {end_id}.",
         generation_description=description or f"Cerca un Pokemon di {generation_name} e scorri la griglia completa degli sprite della generazione.",
+        previous_card=previous_card,
+        next_card=next_card,
         action_path=page_name,
         query=query,
         error=error_message,

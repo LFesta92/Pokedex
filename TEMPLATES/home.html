@@ -3,16 +3,16 @@
 {% block title %}MyDex{% endblock %}
 
 {% block content %}
-<main class="page">
+<main class="page home-page">
     <section class="home-hero">
         <h1 class="home-title">MyDex</h1>
     </section>
 
     <section class="search-box">
         <h2>Cerca un Pokemon</h2>
-        <p>Inserisci un nome o un il numero del pokedex per visualizzare la scheda completa di un Pokèmon.</p>
+        <p>Inserisci un nome o il numero del pokedex per visualizzare la scheda completa di un Pokemon.</p>
 
-        <form method="get" action="/pokedex">
+        <form method="get" action="/">
             <input type="text" name="pokemon" placeholder="Es. pikachu o 25" value="{{ query }}">
             <button type="submit">Cerca</button>
         </form>
@@ -23,8 +23,8 @@
     </section>
 
     <section class="generation-box">
+        <p class="home-section-title">Sezione Pokedex</p>
         <div class="section-heading home-generation-heading">
-            <h2>Divisione per generazioni:</h2>
         </div>
 
         <div class="generation-grid">
@@ -37,5 +37,16 @@
         </div>
     </section>
 
+    <section class="generation-box game-box">
+        <p class="home-section-title">Sezione Giochi</p>
+        <div class="game-grid">
+            {% for game in games %}
+            <div class="generation-card game-card">
+                <img src="{{ url_for('static', filename=game.image) }}" alt="{{ game.label }}">
+                <span>{{ game.label }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
 </main>
 {% endblock %}

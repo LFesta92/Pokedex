@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Scegli la Forma{% endblock %}
+
+{% block content %}
+<main class="page choice-page">
+    <section class="choice-hero">
+        <h1 class="home-title choice-title">{{ species_name }}</h1>
+        <p class="choice-subtitle">Scegli quale forma vuoi aprire nel Pokedex.</p>
+    </section>
+
+    {% if error %}
+    <section class="search-box">
+        <div class="message error">{{ error }}</div>
+    </section>
+    {% endif %}
+
+    {% if choices %}
+    <section class="generation-box">
+        <div class="choice-grid">
+            {% for item in choices %}
+            <a class="choice-card" href="/pokedex?pokemon={{ item.id }}#pokedex-view">
+                <div class="choice-image">
+                    <img src="{{ item.sprite }}" alt="{{ item.name }}">
+                </div>
+                <strong class="choice-card-title">{{ item.label }}</strong>
+                <span class="choice-card-meta">#{{ item.id }} {{ item.name }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</main>
+{% endblock %}

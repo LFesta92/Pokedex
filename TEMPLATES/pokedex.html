@@ -4,12 +4,6 @@
 
 {% block content %}
 <main class="page pokedex-page">
-    <section class="hero-box pokedex-intro">
-        <p class="hero-kicker">Modalita Pokedex</p>
-        <h1>MyDex</h1>
-        <p class="hero-subtitle">Cerca un Pokemon e scorri il Pokedex con i controlli precedente e successivo.</p>
-    </section>
-
     <section class="search-box pokedex-search-box">
         <h2>Apri un Pokemon nel Pokedex</h2>
         <p>Inserisci nome o numero per entrare direttamente nella scheda dedicata.</p>
@@ -34,7 +28,10 @@
                 <span class="light green"></span>
             </div>
 
+            <h2 class="pokedex-pokemon-name">{{ pokemon.name }}</h2>
+
             <div class="pokedex-screen-frame">
+                <span class="pokedex-screen-id">#{{ pokemon.id }}</span>
                 <div class="screen-leds">
                     <span></span>
                     <span></span>
@@ -63,15 +60,8 @@
                     {% endif %}
                 </div>
 
-                <div class="pokedex-ornaments">
-                    <span class="joy-stick"></span>
-                    <span class="wide-button red"></span>
-                    <span class="wide-button blue"></span>
-                    <span class="dpad"></span>
-                </div>
-
-                <div class="pokedex-mini-screen">
-                    #{{ pokemon.id }} {{ pokemon.name }}
+                <div class="pokedex-description-box">
+                    <p>{{ pokemon.description }}</p>
                 </div>
             </div>
         </div>
@@ -79,12 +69,6 @@
         <div class="pokedex-spine"></div>
 
         <div class="pokedex-right">
-            <div class="pokedex-right-screen">
-                <span class="pokemon-id">#{{ pokemon.id }}</span>
-                <h2>{{ pokemon.name }}</h2>
-                <p>{{ pokemon.description }}</p>
-            </div>
-
             <div class="pokedex-right-grid">
                 <div class="dex-info-cards">
                     <div class="dex-info-card">
@@ -152,10 +136,8 @@
         <div class="ability-modal-backdrop" data-close-modal="true"></div>
         <div class="ability-modal-card" role="dialog" aria-modal="true" aria-labelledby="ability-modal-title">
             <button class="ability-close" type="button" data-close-modal="true">x</button>
-            <p class="hero-kicker">Abilita</p>
             <h3 id="ability-modal-title">Dettagli abilita</h3>
-            <p class="ability-short" id="ability-modal-short">Caricamento...</p>
-            <p class="ability-effect" id="ability-modal-effect"></p>
+            <p class="ability-short" id="ability-modal-text">Caricamento...</p>
         </div>
     </div>
     {% endif %}
@@ -170,8 +152,7 @@ window.addEventListener("load", function () {
 
     var modal = document.getElementById("ability-modal");
     var modalTitle = document.getElementById("ability-modal-title");
-    var modalShort = document.getElementById("ability-modal-short");
-    var modalEffect = document.getElementById("ability-modal-effect");
+    var modalText = document.getElementById("ability-modal-text");
 
     function closeModal() {
         modal.hidden = true;
@@ -189,8 +170,7 @@ window.addEventListener("load", function () {
             var name = button.dataset.abilityName;
 
             modalTitle.textContent = name;
-            modalShort.textContent = "Caricamento...";
-            modalEffect.textContent = "";
+            modalText.textContent = "Caricamento...";
             openModal();
 
             fetch("/api/ability/" + slug)
@@ -199,16 +179,15 @@ window.addEventListener("load", function () {
                 })
                 .then(function (data) {
                     if (data.error) {
-                        modalShort.textContent = data.error;
+                        modalText.textContent = data.error;
                         return;
                     }
 
                     modalTitle.textContent = data.name;
-                    modalShort.textContent = data.short_effect;
-                    modalEffect.textContent = data.effect;
+                    modalText.textContent = data.short_effect || data.effect || "Descrizione non disponibile.";
                 })
                 .catch(function () {
-                    modalShort.textContent = "Errore durante il caricamento dell'abilita.";
+                    modalText.textContent = "Errore durante il caricamento dell'abilita.";
                 });
         });
     });
