@@ -104,6 +104,22 @@ body.modal-open {
     line-height: 0.95;
 }
 
+.home-hero {
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.home-title {
+    margin: 0;
+    color: #c6da0e;
+    font-size: clamp(3.2rem, 10vw, 6.2rem);
+    line-height: 0.95;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    text-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
+}
+
 .hero-subtitle {
     margin: 0;
     font-size: clamp(1.1rem, 2.5vw, 1.5rem);
@@ -171,9 +187,11 @@ form {
 }
 
 .generation-card:nth-child(10),
-.generation-card:nth-child(11) {
+.generation-card:nth-child(11),
+.generation-card:nth-child(12),
+.generation-card:nth-child(13) {
     grid-column: span 3;
-    aspect-ratio: 16 / 10;
+    aspect-ratio: 1 / 1;
 }
 
 .generation-card:hover {
@@ -858,7 +876,9 @@ button {
 
     .generation-card,
     .generation-card:nth-child(10),
-    .generation-card:nth-child(11) {
+    .generation-card:nth-child(11),
+    .generation-card:nth-child(12),
+    .generation-card:nth-child(13) {
         grid-column: span 1;
         aspect-ratio: 1 / 1;
     }

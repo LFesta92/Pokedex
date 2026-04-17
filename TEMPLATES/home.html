@@ -4,16 +4,13 @@
 
 {% block content %}
 <main class="page">
-    <section class="hero-box">
-        <p class="hero-kicker">Benvenuto</p>
-        <h1>MyDex</h1>
-        <p class="hero-subtitle">Il pokedex con tutto di tutti.</p>
-        <p class="hero-text">Cerca un Pokemon per nome o ID usando PokeAPI e scopri subito dati, tipi, abilita e statistiche.</p>
+    <section class="home-hero">
+        <h1 class="home-title">MyDex</h1>
     </section>
 
     <section class="search-box">
         <h2>Cerca un Pokemon</h2>
-        <p>Inserisci un nome o un numero per visualizzare la scheda completa.</p>
+        <p>Inserisci un nome o un il numero del pokedex per visualizzare la scheda completa di un Pokèmon.</p>
 
         <form method="get" action="/pokedex">
             <input type="text" name="pokemon" placeholder="Es. pikachu o 25" value="{{ query }}">
@@ -27,8 +24,7 @@
 
     <section class="generation-box">
         <div class="section-heading home-generation-heading">
-            <h2>Generazioni</h2>
-            <p>Ogni riquadro apre la pagina dedicata con ricerca e griglia dei Pokemon della generazione.</p>
+            <h2>Divisione per generazioni:</h2>
         </div>
 
         <div class="generation-grid">

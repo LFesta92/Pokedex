@@ -10,7 +10,7 @@ POKEAPI_BASE_URL = "https://pokeapi.co/api/v2"
 SPRITES_DIR = Path(__file__).resolve().parent / "sprites" / "sprites" / "pokemon"
 ITEMS_DIR = Path(__file__).resolve().parent / "sprites" / "sprites" / "items"
 TYPE_ICONS_DIR = Path(__file__).resolve().parent / "sprites" / "sprites" / "types" / "generation-viii" / "sword-shield"
-MAX_POKEDEX_ID = 1035
+MAX_POKEDEX_ID = 10249
 TYPE_ICON_IDS = {
     "normal": 1,
     "fighting": 2,
@@ -70,7 +70,9 @@ GENERATION_CARDS = [
     {"label": "Gen VIII / Galar", "image": "img/galar.png", "href": "gen8.html", "start": 810, "end": 905},
     {"label": "Gen IX / Paldea", "image": "img/paldea.png", "href": "gen9.html", "start": 906, "end": 1035},
     {"label": "Leggende / Hisui", "image": "img/hisui-new.png", "href": "hisui.html"},
-    {"label": "ZA / Kalos", "image": "img/za-new.png", "href": "za.html"},
+    {"label": "Forme Alola", "image": "img/alola.png", "href": "alola-forms.html"},
+    {"label": "Forme Mega", "image": "img/megavenusaur.png", "href": "mega-forms.html"},
+    {"label": "Forme Giga-Max", "image": "img/gigamax.png", "href": "gigamax-forms.html"},
 ]
 
 
@@ -233,6 +235,25 @@ def get_generation_pokemon(start_id, end_id):
     return pokemon_list
 
 
+def get_pokemon_summary(identifier):
+    data = fetch_json(f"{POKEAPI_BASE_URL}/pokemon/{identifier}")
+    return {
+        "id": data["id"],
+        "name": data["name"].replace("-", " ").title(),
+        "sprite": get_sprite_url(data["id"]),
+    }
+
+
+def get_pokemon_by_ids(pokemon_ids):
+    pokemon_list = []
+    for pokemon_id in pokemon_ids:
+        try:
+            pokemon_list.append(get_pokemon_summary(pokemon_id))
+        except error.HTTPError:
+            continue
+    return pokemon_list
+
+
 def get_adjacent_pokemon_ids(pokemon_id):
     previous_id = pokemon_id - 1 if pokemon_id > 1 else None
     next_id = pokemon_id + 1 if pokemon_id < MAX_POKEDEX_ID else None
@@ -300,7 +321,7 @@ def pokedex():
     )
 
 
-def render_generation_page(generation_name, start_id, end_id, page_name):
+def render_generation_page(generation_name, start_id, end_id, page_name, pokemon_ids=None, range_label=None, description=None):
     query = request.args.get("pokemon", "").strip()
 
     if query:
@@ -309,10 +330,16 @@ def render_generation_page(generation_name, start_id, end_id, page_name):
     error_message = None
 
     try:
-        pokemon_list = get_generation_pokemon(start_id, end_id)
+        if pokemon_ids is not None:
+            pokemon_list = get_pokemon_by_ids(pokemon_ids)
+        else:
+            pokemon_list = get_generation_pokemon(start_id, end_id)
     except error.HTTPError:
         error_message = "Pokemon non trovato."
-        pokemon_list = get_generation_pokemon(start_id, end_id)
+        if pokemon_ids is not None:
+            pokemon_list = get_pokemon_by_ids(pokemon_ids)
+        else:
+            pokemon_list = get_generation_pokemon(start_id, end_id)
     except Exception:
         error_message = "Errore durante la richiesta a PokeAPI."
         pokemon_list = []
@@ -320,8 +347,8 @@ def render_generation_page(generation_name, start_id, end_id, page_name):
     return render_template(
         "generation.html",
         generation_name=generation_name,
-        generation_range=f"Tutti i Pokemon da {start_id} a {end_id}.",
-        generation_description=f"Cerca un Pokemon di {generation_name} e scorri la griglia completa degli sprite della generazione.",
+        generation_range=range_label or f"Tutti i Pokemon da {start_id} a {end_id}.",
+        generation_description=description or f"Cerca un Pokemon di {generation_name} e scorri la griglia completa degli sprite della generazione.",
         action_path=page_name,
         query=query,
         error=error_message,
@@ -372,3 +399,57 @@ def gen8():
 @main_blueprint.route("/gen9.html")
 def gen9():
     return render_generation_page("Gen IX / Paldea", 906, 1035, "/gen9.html")
+
+
+@main_blueprint.route("/hisui.html")
+def hisui():
+    return render_generation_page(
+        "Leggende / Hisui",
+        10229,
+        10249,
+        "/hisui.html",
+        pokemon_ids=list(range(10229, 10250)),
+        range_label="Forme da 10229 a 10249.",
+        description="Scorri tutte le forme Hisui presenti nei tuoi sprite locali.",
+    )
+
+
+@main_blueprint.route("/alola-forms.html")
+def alola_forms():
+    return render_generation_page(
+        "Forme Alola",
+        10100,
+        10115,
+        "/alola-forms.html",
+        pokemon_ids=list(range(10100, 10116)),
+        range_label="Forme da 10100 a 10115.",
+        description="Scorri tutte le forme Alola presenti nei tuoi sprite locali.",
+    )
+
+
+@main_blueprint.route("/mega-forms.html")
+def mega_forms():
+    mega_ids = list(range(10033, 10080)) + list(range(10087, 10091))
+    return render_generation_page(
+        "Forme Mega",
+        10033,
+        10090,
+        "/mega-forms.html",
+        pokemon_ids=mega_ids,
+        range_label="Forme da 10033 a 10079 e da 10087 a 10090.",
+        description="Scorri tutte le Mega Evoluzioni presenti nei tuoi sprite locali.",
+    )
+
+
+@main_blueprint.route("/gigamax-forms.html")
+def gigamax_forms():
+    gigamax_ids = [10190] + list(range(10195, 10229))
+    return render_generation_page(
+        "Forme Giga-Max",
+        10190,
+        10228,
+        "/gigamax-forms.html",
+        pokemon_ids=gigamax_ids,
+        range_label="Forme 10190 e da 10195 a 10228.",
+        description="Scorri tutte le forme Giga-Max presenti nei tuoi sprite locali.",
+    )
