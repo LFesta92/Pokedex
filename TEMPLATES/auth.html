@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}{% if mode == "register" %}Registrati{% else %}Login{% endif %}{% endblock %}
+
+{% block content %}
+<main class="page choice-page">
+    <section class="choice-hero">
+        <h1 class="home-title choice-title">{% if mode == "register" %}Registrati{% else %}Login{% endif %}</h1>
+        <p class="choice-subtitle">Accedi al tuo profilo MyDex per usare il box personale.</p>
+    </section>
+
+    <section class="search-box auth-box">
+        <form method="post" action="{% if mode == 'register' %}/register{% else %}/login{% endif %}">
+            <input type="hidden" name="next" value="{{ next_page }}">
+            <input type="text" name="username" placeholder="Username" required>
+            {% if mode == "register" %}
+            <input type="email" name="email" placeholder="Email" required>
+            {% endif %}
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">{% if mode == "register" %}Crea Account{% else %}Entra{% endif %}</button>
+        </form>
+
+        {% if error %}
+        <div class="message error">{{ error }}</div>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}

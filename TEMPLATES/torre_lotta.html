@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Torre Lotta{% endblock %}
+
+{% block content %}
+<main class="page choice-page tower-page">
+    <section class="choice-hero safari-hero">
+        <div class="generation-title-row minigame-title-row">
+            <a class="generation-arrow" href="{{ previous_game.href }}" aria-label="Vai a {{ previous_game.label }}">&#8249;</a>
+            <h1 class="home-title choice-title generation-title">Torre Lotta</h1>
+            <a class="generation-arrow" href="{{ next_game.href }}" aria-label="Vai a {{ next_game.label }}">&#8250;</a>
+        </div>
+        <p class="choice-subtitle">Scegli 6 Pokemon dal tuo box, affronta 3 NPC casuali e conquista una medaglia se vinci tutta la serie.</p>
+    </section>
+
+    {% if phase == "team_select" %}
+    <section class="search-box auth-box tower-select-box">
+        <h2>Componi La Squadra</h2>
+        <p>Devi selezionare esattamente 6 Pokemon dal tuo box.</p>
+
+        {% if error %}
+        <div class="message error">{{ error }}</div>
+        {% endif %}
+
+        {% if box_entries %}
+        <form method="post" action="/torre-lotta/start" class="tower-selection-form">
+            <div class="tower-team-grid">
+                {% for item in box_entries %}
+                <label class="tower-team-card">
+                    <input type="checkbox" name="pokemon_ids" value="{{ item.id }}">
+                    <img src="{{ item.sprite }}" alt="{{ item.name }}">
+                    <strong>{{ item.name }}</strong>
+                </label>
+                {% endfor %}
+            </div>
+            <button type="submit" class="safari-reset-button">Inizia La Torre</button>
+        </form>
+        {% else %}
+        <div class="message error">Il tuo box e vuoto. Prima cattura dei Pokemon nella Zona Safari.</div>
+        {% endif %}
+    </section>
+    {% else %}
+    <section class="tower-toolbar">
+        <div class="safari-toolbar-card">
+            <strong>Allenatore</strong>
+            <span>{{ user.username }}</span>
+        </div>
+        <div class="safari-toolbar-card">
+            <strong>Vittorie</strong>
+            <span>{{ wins }} / {{ total_battles }}</span>
+        </div>
+        <div class="safari-toolbar-card">
+            <strong>Scontro</strong>
+            <span>{{ current_battle_number }} / {{ total_battles }}</span>
+        </div>
+    </section>
+
+    <section class="tower-battle-layout">
+        <div class="tower-battle-main">
+            {% if battle %}
+            <div class="tower-arena">
+                <div class="tower-side npc-side">
+                    {% if npc_active %}
+                    <div class="tower-active-card">
+                        <img src="{{ npc_active.sprite_front }}" alt="{{ npc_active.name }}">
+                        <h2>{{ npc_active.name }}</h2>
+                        <p>Lv. {{ npc_active.level }}</p>
+                        <div class="tower-hp-track">
+                            <span class="tower-hp-fill" style="width: {{ (npc_active.hp / npc_active.max_hp * 100)|round(0) }}%;"></span>
+                        </div>
+                        <small>{{ npc_active.hp }} / {{ npc_active.max_hp }} PS</small>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="tower-versus">VS</div>
+
+                <div class="tower-side player-side">
+                    {% if player_active %}
+                    <div class="tower-active-card">
+                        <img src="{{ player_active.sprite_front }}" alt="{{ player_active.name }}">
+                        <h2>{{ player_active.name }}</h2>
+                        <p>Lv. {{ player_active.level }}</p>
+                        <div class="tower-hp-track">
+                            <span class="tower-hp-fill player-fill" style="width: {{ (player_active.hp / player_active.max_hp * 100)|round(0) }}%;"></span>
+                        </div>
+                        <small>{{ player_active.hp }} / {{ player_active.max_hp }} PS</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if phase in ["between_battles", "victory", "defeat"] %}
+            <div class="tower-result-overlay {{ 'lose' if phase == 'defeat' else 'win' }}">
+                <span>{% if phase == "defeat" %}Hai perso{% else %}Hai vinto{% endif %}</span>
+            </div>
+            {% endif %}
+
+            <div class="tower-log-box">
+                <h3>Log Battaglia</h3>
+                <div class="tower-log-list">
+                    {% for entry in battle_log %}
+                    <p>{{ entry }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="tower-actions">
+                {% if phase == "battle" %}
+                <form method="post" action="/torre-lotta/turn">
+                    <button type="submit" class="safari-action-button">Gioca Turno</button>
+                </form>
+                {% elif phase == "between_battles" %}
+                <form method="post" action="/torre-lotta/continue">
+                    <button type="submit" class="safari-action-button">Battaglia Successiva</button>
+                </form>
+                {% elif phase in ["victory", "defeat"] %}
+                <form method="post" action="/torre-lotta/continue">
+                    <button type="submit" class="safari-action-button">Nuova Sfida</button>
+                </form>
+                {% endif %}
+            </div>
+
+            {% if phase == "victory" and badge %}
+            <div class="tower-badge-box">
+                <h3>Nuova Medaglia Ottenuta</h3>
+                <img src="{{ badge.url }}" alt="{{ badge.filename }}">
+                <p>{{ badge.filename }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <aside class="tower-team-sidebar safari-side-card">
+            <h3>La Tua Squadra</h3>
+            <div class="tower-team-status">
+                {% for pokemon in player_team %}
+                <div class="tower-team-status-item {{ 'fainted' if pokemon.hp <= 0 else '' }}">
+                    <img src="{{ pokemon.sprite_front }}" alt="{{ pokemon.name }}">
+                    <div>
+                        <strong>{{ pokemon.name }}</strong>
+                        <span>{{ pokemon.hp }} / {{ pokemon.max_hp }} PS</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </aside>
+    </section>
+    {% endif %}
+</main>
+{% endblock %}

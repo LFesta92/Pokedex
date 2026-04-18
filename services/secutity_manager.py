@@ -1,7 +1,8 @@
-import bcrypt
-from cryptography import Fernet
 import base64
 import hashlib
+
+import bcrypt
+from cryptography.fernet import Fernet
 
 class SecurityManager:
     @staticmethod #metodo che prende la password e genera una password hashata e poi vi aggiunge il salt

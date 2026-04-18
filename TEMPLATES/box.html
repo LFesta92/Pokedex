@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Il Mio Box{% endblock %}
+
+{% block content %}
+<main class="page choice-page">
+    <section class="choice-hero">
+        <h1 class="home-title choice-title">Il Mio Box</h1>
+        <p class="choice-subtitle">{{ user.username }}, qui trovi i Pokemon che hai salvato.</p>
+    </section>
+
+    {% if box_entries %}
+    <section class="generation-box">
+        <div class="pokemon-grid">
+            {% for item in box_entries %}
+            <a class="pokemon-grid-card" href="/pokedex?pokemon={{ item.id }}">
+                <strong class="pokemon-grid-id">#{{ item.id }}</strong>
+                <img src="{{ item.sprite }}" alt="{{ item.name }}">
+                <span class="generation-pokemon-name">{{ item.name }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% else %}
+    <section class="search-box auth-box">
+        <h2>Box Vuoto</h2>
+        <p>Non hai ancora salvato nessun Pokemon. Apri una scheda Pokedex e usa il pulsante per aggiungerlo.</p>
+    </section>
+    {% endif %}
+</main>
+{% endblock %}

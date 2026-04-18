@@ -10,7 +10,19 @@
     <div class="site-background"></div>
     <div class="site-overlay"></div>
     <div class="site-shell">
-        <a class="home-button" href="/">Home</a>
+        <div class="top-actions">
+            <a class="home-button" href="/">Home</a>
+            <div class="account-actions">
+                {% if session.get("username") %}
+                <span class="account-greeting">Ciao! {{ session.get("username") }}</span>
+                <a class="account-button" href="/box">Box</a>
+                <a class="account-button" href="/logout">Logout</a>
+                {% else %}
+                <a class="account-button" href="/login">Login</a>
+                <a class="account-button" href="/register">Registrati</a>
+                {% endif %}
+            </div>
+        </div>
         {% block content %}{% endblock %}
     </div>
 </body>

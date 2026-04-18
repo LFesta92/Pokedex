@@ -41,10 +41,10 @@
         <p class="home-section-title">Sezione Giochi</p>
         <div class="game-grid">
             {% for game in games %}
-            <div class="generation-card game-card">
+            <a class="generation-card game-card" href="{{ game.href }}">
                 <img src="{{ url_for('static', filename=game.image) }}" alt="{{ game.label }}">
                 <span>{{ game.label }}</span>
-            </div>
+            </a>
             {% endfor %}
         </div>
     </section>

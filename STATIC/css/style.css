@@ -39,6 +39,11 @@ body.modal-open {
     position: relative;
 }
 
+.top-actions {
+    position: relative;
+    z-index: 20;
+}
+
 .home-button {
     position: fixed;
     top: 1rem;
@@ -57,6 +62,40 @@ body.modal-open {
     font-weight: 800;
     font-size: 1rem;
     letter-spacing: 0.02em;
+}
+
+.account-actions {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    z-index: 20;
+}
+
+.account-greeting,
+.account-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 54px;
+    padding: 0.95rem 1.35rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(62, 210, 255, 0.96), rgba(16, 144, 214, 0.96));
+    color: #ffffff;
+    border: 2px solid rgba(209, 248, 255, 0.72);
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+    box-shadow: 0 14px 30px rgba(0, 44, 78, 0.34);
+    backdrop-filter: blur(10px);
+}
+
+.account-greeting {
+    cursor: default;
+    white-space: nowrap;
 }
 
 .page {
@@ -266,6 +305,564 @@ form {
 .game-card {
     aspect-ratio: 16 / 10;
     grid-column: span 1;
+    text-decoration: none;
+}
+
+.safari-page {
+    width: min(1120px, calc(100% - 2rem));
+}
+
+.safari-toolbar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.safari-toolbar-card,
+.safari-main-card,
+.safari-side-card {
+    background: rgba(11, 18, 35, 0.72);
+    border: 1px solid rgba(141, 238, 255, 0.24);
+    border-radius: 20px;
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.26);
+    backdrop-filter: blur(10px);
+    color: #f8fbff;
+}
+
+.safari-toolbar-card {
+    padding: 1rem 1.1rem;
+    display: grid;
+    gap: 0.35rem;
+}
+
+.safari-toolbar-card strong {
+    color: #8deeff;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.82rem;
+}
+
+.safari-toolbar-card span {
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+.safari-toolbar-form {
+    margin: 0;
+}
+
+.safari-reset-button,
+.safari-action-button,
+.safari-ball-button {
+    border: 0;
+    border-radius: 16px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.safari-reset-button,
+.safari-action-button {
+    width: 100%;
+    min-height: 72px;
+    padding: 1rem 1.2rem;
+    background: linear-gradient(180deg, rgba(62, 210, 255, 0.96), rgba(16, 144, 214, 0.96));
+    color: #ffffff;
+    box-shadow: 0 14px 30px rgba(0, 44, 78, 0.34);
+}
+
+.safari-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    gap: 1rem;
+}
+
+.safari-main-card {
+    padding: 1.4rem;
+}
+
+.safari-kicker {
+    margin: 0 0 0.75rem;
+    color: #8deeff;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.safari-encounter-card {
+    position: relative;
+    min-height: 360px;
+    padding: 1.5rem 1rem 1rem;
+    border-radius: 20px;
+    background:
+        radial-gradient(circle at center, rgba(135, 247, 163, 0.28), transparent 30%),
+        linear-gradient(180deg, rgba(16, 34, 27, 0.92), rgba(8, 16, 30, 0.92));
+    border: 1px solid rgba(164, 255, 191, 0.2);
+    display: grid;
+    place-items: center;
+    text-align: center;
+}
+
+.safari-encounter-id {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    color: #8deeff;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.safari-encounter-card img {
+    width: min(250px, 72%);
+    image-rendering: pixelated;
+}
+
+.safari-encounter-card h2 {
+    margin: 0.6rem 0 0;
+    color: #8deeff;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-shadow:
+        0 0 10px rgba(141, 238, 255, 0.55),
+        0 0 24px rgba(90, 198, 255, 0.34),
+        0 14px 30px rgba(0, 20, 42, 0.44);
+    -webkit-text-stroke: 0.8px rgba(232, 251, 255, 0.55);
+}
+
+.safari-ball-grid,
+.safari-result-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-top: 1rem;
+}
+
+.safari-ball-form {
+    margin: 0;
+}
+
+.safari-ball-button {
+    width: 100%;
+    min-height: 110px;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.92);
+    color: #0f172a;
+    display: grid;
+    gap: 0.35rem;
+    text-align: center;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+}
+
+.safari-ball-button small {
+    color: #0f766e;
+    font-weight: 800;
+}
+
+.safari-ball-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.safari-result-box,
+.safari-finished-box {
+    margin-top: 1rem;
+    padding: 1rem 1.1rem;
+    border-radius: 16px;
+}
+
+.safari-result-box.success {
+    background: rgba(27, 94, 69, 0.92);
+    border: 1px solid rgba(143, 255, 190, 0.32);
+}
+
+.safari-result-box.fail {
+    background: rgba(102, 23, 23, 0.92);
+    border: 1px solid rgba(255, 173, 173, 0.32);
+}
+
+.safari-result-box p,
+.safari-finished-box p {
+    margin: 0.45rem 0 0;
+    line-height: 1.6;
+}
+
+.safari-action-button.secondary {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.safari-side-card {
+    padding: 1.25rem;
+    display: grid;
+    gap: 1rem;
+    align-content: start;
+}
+
+.safari-side-card h3,
+.safari-finished-box h3 {
+    margin: 0;
+    color: #8deeff;
+}
+
+.safari-side-balls,
+.safari-history {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.safari-side-ball,
+.safari-history-item {
+    padding: 0.9rem 1rem;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.safari-side-ball {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 700;
+}
+
+.safari-history-item {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.safari-history-item span,
+.safari-history p {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.tower-page {
+    width: min(1180px, calc(100% - 2rem));
+}
+
+.tower-toolbar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.minigame-title-row {
+    margin-bottom: 0.35rem;
+}
+
+.tower-select-box h2 {
+    margin-bottom: 0.35rem;
+}
+
+.tower-selection-form {
+    display: grid;
+    gap: 1rem;
+}
+
+.tower-team-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.tower-team-card {
+    position: relative;
+    display: grid;
+    gap: 0.55rem;
+    justify-items: center;
+    padding: 1rem 0.75rem;
+    border-radius: 18px;
+    background: rgba(8, 15, 32, 0.72);
+    border: 1px solid rgba(141, 238, 255, 0.24);
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.tower-team-card input {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.85rem;
+    width: 20px;
+    height: 20px;
+}
+
+.tower-team-card img {
+    width: 84px;
+    height: 84px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+.tower-team-card strong {
+    text-align: center;
+}
+
+.tower-battle-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+    gap: 1rem;
+}
+
+.tower-battle-main,
+.tower-team-sidebar,
+.tower-log-box,
+.tower-badge-box {
+    background: rgba(11, 18, 35, 0.72);
+    border: 1px solid rgba(141, 238, 255, 0.24);
+    border-radius: 20px;
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.26);
+    backdrop-filter: blur(10px);
+    color: #f8fbff;
+}
+
+.tower-battle-main {
+    position: relative;
+    padding: 1.3rem;
+    display: grid;
+    gap: 1rem;
+}
+
+.tower-arena {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 100px minmax(0, 1fr);
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 22px;
+    background:
+        radial-gradient(circle at center, rgba(120, 210, 255, 0.12), transparent 30%),
+        linear-gradient(180deg, rgba(8, 14, 28, 0.95), rgba(15, 22, 38, 0.95));
+    border: 1px solid rgba(141, 238, 255, 0.16);
+}
+
+.tower-side {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.tower-side .safari-kicker {
+    margin-bottom: 0;
+}
+
+.npc-side .safari-kicker {
+    color: #ffb199;
+    text-shadow: 0 0 12px rgba(255, 122, 89, 0.24);
+}
+
+.player-side .safari-kicker {
+    color: #8deeff;
+}
+
+.tower-versus {
+    display: grid;
+    place-items: center;
+    width: 84px;
+    height: 84px;
+    margin: 0 auto;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(255, 175, 109, 0.24), rgba(255, 98, 98, 0.16));
+    border: 1px solid rgba(255, 180, 122, 0.26);
+    color: #ffd66d;
+    font-size: clamp(2rem, 6vw, 3.2rem);
+    font-weight: 900;
+    text-shadow: 0 0 12px rgba(255, 214, 109, 0.45);
+}
+
+.tower-active-card {
+    padding: 1rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.08);
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.npc-side .tower-active-card {
+    background:
+        radial-gradient(circle at top, rgba(255, 128, 97, 0.16), transparent 42%),
+        rgba(45, 18, 18, 0.92);
+    border-color: rgba(255, 163, 138, 0.22);
+}
+
+.player-side .tower-active-card {
+    background:
+        radial-gradient(circle at top, rgba(99, 240, 255, 0.18), transparent 42%),
+        rgba(14, 31, 46, 0.92);
+    border-color: rgba(141, 238, 255, 0.24);
+}
+
+.tower-active-card img {
+    width: min(220px, 78%);
+    image-rendering: pixelated;
+    filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.34));
+}
+
+.npc-side .tower-active-card img {
+    transform: scaleX(-1);
+}
+
+.player-side .tower-active-card img {
+    transform: translateY(4px);
+}
+
+.tower-active-card h2 {
+    margin: 0.45rem 0 0.2rem;
+    color: #8deeff;
+}
+
+.npc-side .tower-active-card h2 {
+    color: #ffceb7;
+}
+
+.npc-side .tower-active-card p,
+.npc-side .tower-active-card small {
+    color: rgba(255, 233, 225, 0.9);
+}
+
+.player-side .tower-active-card p,
+.player-side .tower-active-card small {
+    color: rgba(232, 251, 255, 0.9);
+}
+
+.tower-active-card p,
+.tower-active-card small {
+    margin: 0;
+}
+
+.tower-hp-track {
+    width: 100%;
+    height: 14px;
+    margin: 0.75rem 0 0.4rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    overflow: hidden;
+}
+
+.tower-hp-fill {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #ff8a65, #ff5252);
+}
+
+.tower-hp-fill.player-fill {
+    background: linear-gradient(90deg, #66ff99, #2ec4b6);
+}
+
+.tower-log-box {
+    padding: 1rem 1.1rem;
+    background:
+        linear-gradient(180deg, rgba(9, 14, 30, 0.94), rgba(16, 23, 41, 0.94));
+}
+
+.tower-result-overlay {
+    position: absolute;
+    top: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
+    pointer-events: none;
+    padding: 1rem 1.8rem;
+    border-radius: 18px;
+    font-size: clamp(2rem, 6vw, 3.4rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #ffffff;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
+}
+
+.tower-result-overlay.win {
+    background: linear-gradient(180deg, rgba(37, 176, 255, 0.9), rgba(18, 109, 196, 0.92));
+    border: 2px solid rgba(199, 242, 255, 0.72);
+    text-shadow: 0 0 14px rgba(255, 255, 255, 0.28);
+}
+
+.tower-result-overlay.lose {
+    background: linear-gradient(180deg, rgba(223, 76, 76, 0.92), rgba(141, 26, 26, 0.94));
+    border: 2px solid rgba(255, 198, 198, 0.55);
+    text-shadow: 0 0 14px rgba(255, 255, 255, 0.24);
+}
+
+.tower-log-box h3,
+.tower-badge-box h3 {
+    margin: 0 0 0.8rem;
+    color: #8deeff;
+}
+
+.tower-log-list {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.tower-log-list p {
+    margin: 0;
+    line-height: 1.55;
+}
+
+.tower-actions form {
+    margin: 0;
+}
+
+.tower-badge-box {
+    padding: 1rem 1.1rem;
+    text-align: center;
+}
+
+.tower-badge-box img {
+    width: 108px;
+    height: 108px;
+    object-fit: contain;
+}
+
+.tower-badge-box p {
+    margin: 0.4rem 0 0;
+}
+
+.tower-team-sidebar {
+    padding: 1.2rem;
+}
+
+.tower-team-sidebar h3 {
+    margin: 0 0 0.9rem;
+    color: #8deeff;
+}
+
+.tower-team-status {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.tower-team-status-item {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.85rem 0.9rem;
+    border-radius: 16px;
+    background:
+        linear-gradient(180deg, rgba(14, 31, 46, 0.92), rgba(9, 22, 34, 0.92));
+    border: 1px solid rgba(141, 238, 255, 0.14);
+}
+
+.tower-team-status-item.fainted {
+    opacity: 0.45;
+}
+
+.tower-team-status-item img {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+.tower-team-status-item strong,
+.tower-team-status-item span {
+    display: block;
+}
 }
 
 .choice-page {
@@ -287,6 +884,11 @@ form {
     font-size: clamp(1.05rem, 2.8vw, 1.45rem);
     font-weight: 700;
     text-shadow: 0 8px 18px rgba(0, 12, 24, 0.45);
+}
+
+.auth-box {
+    max-width: 640px;
+    margin: 0 auto;
 }
 
 .pokemon-grid {
@@ -474,6 +1076,11 @@ button {
 .error {
     background: #fee2e2;
     color: #991b1b;
+}
+
+.success-message {
+    background: #dcfce7;
+    color: #166534;
 }
 
 .pokemon-card {
@@ -871,6 +1478,21 @@ button {
     margin: 0 0 0.8rem;
 }
 
+.box-save-form {
+    margin-top: 0;
+}
+
+.box-status-text {
+    margin: 0;
+    line-height: 1.6;
+    color: #1f2937;
+}
+
+.inline-link {
+    color: #0f766e;
+    font-weight: 700;
+}
+
 .dex-list {
     margin: 0;
     padding-left: 1.25rem;
@@ -1008,12 +1630,42 @@ button {
         font-size: 0.92rem;
     }
 
+    .account-actions {
+        top: 0.85rem;
+        right: 0.85rem;
+        gap: 0.45rem;
+    }
+
+    .account-greeting,
+    .account-button {
+        min-height: 48px;
+        padding: 0.72rem 0.95rem;
+        font-size: 0.9rem;
+    }
+
     .generation-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.85rem;
     }
 
     .game-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .safari-toolbar,
+    .safari-ball-grid,
+    .safari-result-actions,
+    .safari-layout,
+    .tower-toolbar,
+    .tower-battle-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .tower-team-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .tower-arena {
         grid-template-columns: 1fr;
     }
 
@@ -1068,6 +1720,28 @@ button {
 }
 
 @media (max-width: 480px) {
+    .account-actions {
+        position: static;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        padding: 4.8rem 1rem 0;
+    }
+
+    .safari-main-card,
+    .safari-side-card,
+    .tower-battle-main,
+    .tower-team-sidebar {
+        padding: 1rem;
+    }
+
+    .safari-encounter-card {
+        min-height: 280px;
+    }
+
+    .tower-team-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .generation-grid {
         grid-template-columns: 1fr;
     }

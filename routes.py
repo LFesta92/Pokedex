@@ -1,8 +1,13 @@
 import json
+import random
 from pathlib import Path
 from urllib import error, parse, request as urlrequest
 
-from flask import Blueprint, jsonify, redirect, render_template, request, send_from_directory, url_for
+from flask import Blueprint, jsonify, redirect, render_template, request, send_from_directory, session, url_for
+
+from database.db_manager import DatabaseManager
+from services.box_service import BoxServices
+from services.user_service import UserService
 
 
 main_blueprint = Blueprint("main", __name__)
@@ -10,6 +15,7 @@ POKEAPI_BASE_URL = "https://pokeapi.co/api/v2"
 SPRITES_DIR = Path(__file__).resolve().parent / "sprites" / "sprites" / "pokemon"
 ITEMS_DIR = Path(__file__).resolve().parent / "sprites" / "sprites" / "items"
 TYPE_ICONS_DIR = Path(__file__).resolve().parent / "sprites" / "sprites" / "types" / "generation-viii" / "sword-shield"
+BADGES_DIR = Path(__file__).resolve().parent / "sprites" / "sprites" / "badges"
 MAX_POKEDEX_ID = 10249
 TYPE_ICON_IDS = {
     "normal": 1,
@@ -83,9 +89,19 @@ GENERATION_CARDS = [
     {"label": "Forme Giga-Max", "image": "img/gigamax.png", "href": "gigamax-forms.html"},
 ]
 GAME_CARDS = [
-    {"label": "Zona Safari", "image": "img/catturali-tutti.png"},
-    {"label": "Torre Lotta", "image": "img/vs.png"},
+    {"label": "Zona Safari", "image": "img/catturali-tutti.png", "href": "/zona-safari"},
+    {"label": "Torre Lotta", "image": "img/vs.png", "href": "/torre-lotta"},
 ]
+SAFARI_BALLS = {
+    "pokeball": {"label": "Poke Ball", "chance": 40, "count": 2},
+    "megaball": {"label": "Mega Ball", "chance": 50, "count": 2},
+    "ultraball": {"label": "Ultra Ball", "chance": 70, "count": 1},
+}
+TOWER_MAX_HP = 120
+TOWER_PLAYER_LEVEL = 62
+db_manager = DatabaseManager()
+user_service = UserService(db_manager)
+box_service = BoxServices(db_manager)
 
 
 def fetch_json(url, params=None):
@@ -231,6 +247,10 @@ def get_sprite_url(pokemon_id):
     return f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{pokemon_id}.png"
 
 
+def get_badge_url(filename):
+    return f"/badge-assets/{filename}"
+
+
 def get_generation_pokemon(start_id, end_id):
     offset = start_id - 1
     limit = end_id - start_id + 1
@@ -302,6 +322,17 @@ def get_generation_navigation(page_name):
     previous_card = GENERATION_CARDS[index - 1]
     next_card = GENERATION_CARDS[(index + 1) % len(GENERATION_CARDS)]
     return previous_card, next_card
+
+
+def get_minigame_navigation(path_name):
+    hrefs = [card["href"] for card in GAME_CARDS]
+    if path_name not in hrefs:
+        return None, None
+
+    index = hrefs.index(path_name)
+    previous_game = GAME_CARDS[index - 1]
+    next_game = GAME_CARDS[(index + 1) % len(GAME_CARDS)]
+    return previous_game, next_game
 
 
 def get_form_choices_for_species(species_name):
@@ -382,9 +413,299 @@ def get_adjacent_pokemon_ids(pokemon_id):
     return previous_id, next_id
 
 
+def build_battle_pokemon(pokemon_id, display_name=None, level=TOWER_PLAYER_LEVEL, side="player"):
+    data = fetch_json(f"{POKEAPI_BASE_URL}/pokemon/{pokemon_id}")
+    total_stats = sum(item["base_stat"] for item in data["stats"])
+    speed_value = next((item["base_stat"] for item in data["stats"] if item["stat"]["name"] == "speed"), 50)
+
+    return {
+        "id": data["id"],
+        "name": display_name or data["name"].replace("-", " ").title(),
+        "level": level,
+        "total_stats": total_stats,
+        "speed": speed_value,
+        "hp": TOWER_MAX_HP,
+        "max_hp": TOWER_MAX_HP,
+        "sprite_front": get_sprite_url(data["id"]),
+        "side": side,
+    }
+
+
+def reset_battle_team(team):
+    for pokemon in team:
+        pokemon["hp"] = pokemon["max_hp"]
+
+
+def get_first_available_pokemon(team):
+    for pokemon in team:
+        if pokemon["hp"] > 0:
+            return pokemon
+    return None
+
+
+def team_is_defeated(team):
+    return get_first_available_pokemon(team) is None
+
+
+def calculate_tower_damage(attacker, defender):
+    base_damage = (attacker["total_stats"] / 8) + (attacker["level"] / 6) - (defender["total_stats"] / 110)
+    damage = max(24, round(base_damage * random.uniform(0.94, 1.1)))
+    critical = random.random() < 0.08
+    if critical:
+        damage = round(damage * 1.25)
+    return min(damage, defender["hp"]), critical
+
+
+def simulate_tower_turn(player_team, npc_team):
+    log = []
+    player_active = get_first_available_pokemon(player_team)
+    npc_active = get_first_available_pokemon(npc_team)
+    if not player_active or not npc_active:
+        return log
+
+    attack_order = [
+        ("player", player_active, npc_active),
+        ("npc", npc_active, player_active),
+    ]
+    if npc_active["speed"] > player_active["speed"]:
+        attack_order.reverse()
+
+    for _, attacker, defender in attack_order:
+        if attacker["hp"] <= 0 or defender["hp"] <= 0:
+            continue
+
+        damage, critical = calculate_tower_damage(attacker, defender)
+        defender["hp"] = max(0, defender["hp"] - damage)
+        message = f"{attacker['name']} infligge {damage} danni a {defender['name']}."
+        if critical:
+            message += " Colpo critico!"
+        log.append(message)
+
+        if defender["hp"] == 0:
+            log.append(f"{defender['name']} e esausto.")
+
+    return log
+
+
+def get_tower_state():
+    return session.get("battle_tower")
+
+
+def set_tower_state(state):
+    session["battle_tower"] = state
+    session.modified = True
+
+
+def clear_tower_state():
+    session.pop("battle_tower", None)
+    session.modified = True
+
+
+def get_npc_pool():
+    connection = db_manager.get_connection()
+    if not connection:
+        return []
+
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT n.id_npc, n.username, t.slot, t.id_pokemon_api, t.nome_pokemon, t.livello
+            FROM npc n
+            JOIN npc_team t ON t.id_npc = n.id_npc
+            ORDER BY n.id_npc, t.slot
+            """
+        )
+        rows = cursor.fetchall()
+    except Exception as error:
+        print(f"Recupero NPC non riuscito {error}")
+        return []
+    finally:
+        cursor.close()
+
+    npc_map = {}
+    for row in rows:
+        npc_entry = npc_map.setdefault(
+            row["id_npc"],
+            {"id_npc": row["id_npc"], "username": row["username"], "team": []},
+        )
+        npc_entry["team"].append(
+            {
+                "slot": row["slot"],
+                "id_pokemon_api": row["id_pokemon_api"],
+                "nome_pokemon": row["nome_pokemon"],
+                "livello": row["livello"],
+            }
+        )
+
+    return list(npc_map.values())
+
+
+def build_random_npc_battles(total=3):
+    npc_pool = get_npc_pool()
+    if len(npc_pool) < total:
+        return []
+
+    selected_npcs = random.sample(npc_pool, total)
+    battles = []
+    for npc in selected_npcs:
+        team = [
+            build_battle_pokemon(member["id_pokemon_api"], member["nome_pokemon"], member["livello"], side="npc")
+            for member in sorted(npc["team"], key=lambda item: item["slot"])
+        ]
+        battles.append(
+            {
+                "id_npc": npc["id_npc"],
+                "username": npc["username"],
+                "team": team,
+            }
+        )
+    return battles
+
+
+def get_badge_filenames():
+    return sorted(file.name for file in BADGES_DIR.glob("*.png") if file.is_file())
+
+
+def award_random_badge(id_utente):
+    badge_filenames = get_badge_filenames()
+    if not badge_filenames:
+        return None
+
+    connection = db_manager.get_connection()
+    if not connection:
+        return None
+
+    cursor = connection.cursor()
+    try:
+        cursor.execute("SELECT nome_png FROM medaglia WHERE id_utente=%s", (id_utente,))
+        owned_badges = {row[0] for row in cursor.fetchall() if row[0]}
+        available_badges = [filename for filename in badge_filenames if filename not in owned_badges]
+        if not available_badges:
+            return {"filename": None, "already_complete": True}
+
+        selected_badge = random.choice(available_badges)
+        cursor.execute(
+            "INSERT INTO medaglia (nome_png, id_utente) VALUES (%s, %s)",
+            (selected_badge, id_utente),
+        )
+        connection.commit()
+        return {"filename": selected_badge, "already_complete": False}
+    except Exception as error:
+        print(f"Assegnazione medaglia non riuscita {error}")
+        connection.rollback()
+        return None
+    finally:
+        cursor.close()
+
+
+def get_logged_user():
+    username = session.get("username")
+    if not username:
+        return None
+    return user_service.get_user_by_username(username)
+
+
+def get_box_feedback_message(status):
+    messages = {
+        "added": "Pokemon aggiunto al box con successo.",
+        "exists": "Questo Pokemon e gia presente nel tuo box.",
+        "login-required": "Devi effettuare il login per salvare un Pokemon nel box.",
+        "db-error": "Salvataggio non riuscito. Controlla la connessione al database.",
+    }
+    return messages.get(status)
+
+
+def get_available_pokemon_ids():
+    pokemon_ids = []
+    for sprite_path in SPRITES_DIR.glob("*.png"):
+        if sprite_path.stem.isdigit():
+            pokemon_ids.append(int(sprite_path.stem))
+    return sorted(set(pokemon_ids))
+
+
+def build_safari_encounters(total=5):
+    available_ids = get_available_pokemon_ids()
+    if len(available_ids) < total:
+        return []
+
+    selected_ids = random.sample(available_ids, total)
+    encounters = []
+    for pokemon_id in selected_ids:
+        summary = get_pokemon_summary(pokemon_id)
+        encounters.append(
+            {
+                "id": summary["id"],
+                "name": summary["name"],
+                "sprite": summary["sprite"],
+            }
+        )
+    return encounters
+
+
+def create_safari_game():
+    return {
+        "encounters": build_safari_encounters(),
+        "current_index": 0,
+        "balls": {slug: meta["count"] for slug, meta in SAFARI_BALLS.items()},
+        "phase": "encounter",
+        "result": None,
+        "saved_ids": [],
+        "history": [],
+    }
+
+
+def get_safari_state():
+    return session.get("safari_game")
+
+
+def set_safari_state(state):
+    session["safari_game"] = state
+    session.modified = True
+
+
+def clear_safari_state():
+    session.pop("safari_game", None)
+    session.modified = True
+
+
+def get_safari_ball_view(state):
+    view = []
+    for slug, meta in SAFARI_BALLS.items():
+        view.append(
+            {
+                "slug": slug,
+                "label": meta["label"],
+                "chance": meta["chance"],
+                "remaining": state["balls"].get(slug, 0),
+            }
+        )
+    return view
+
+
+def get_safari_current_encounter(state):
+    index = state.get("current_index", 0)
+    encounters = state.get("encounters", [])
+    if 0 <= index < len(encounters):
+        return encounters[index]
+    return None
+
+
+def finish_safari_game(state, extra_message=None):
+    state["phase"] = "finished"
+    if extra_message:
+        state["final_message"] = extra_message
+    set_safari_state(state)
+
+
 @main_blueprint.route("/pokemon-sprites/<path:filename>")
 def pokemon_sprite(filename):
     return send_from_directory(SPRITES_DIR, filename)
+
+
+@main_blueprint.route("/badge-assets/<path:filename>")
+def badge_asset(filename):
+    return send_from_directory(BADGES_DIR, filename)
 
 
 @main_blueprint.route("/type-icons/<path:filename>")
@@ -400,6 +721,474 @@ def ability_details(slug):
         return jsonify({"error": "Abilita non trovata."}), 404
     except Exception:
         return jsonify({"error": "Errore durante la richiesta a PokeAPI."}), 500
+
+
+@main_blueprint.route("/login", methods=["GET", "POST"])
+def login():
+    next_page = request.args.get("next", "") if request.method == "GET" else request.form.get("next", "")
+    error_message = None
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+
+        if not username or not password:
+            error_message = "Inserisci username e password."
+        else:
+            user = user_service.login(username, password)
+            if user:
+                session["username"] = user["username"]
+                if next_page:
+                    return redirect(next_page)
+                return redirect(url_for("main.home"))
+            error_message = "Credenziali non valide o database non disponibile."
+
+    return render_template(
+        "auth.html",
+        mode="login",
+        next_page=next_page,
+        error=error_message,
+    )
+
+
+@main_blueprint.route("/register", methods=["GET", "POST"])
+def register():
+    next_page = request.args.get("next", "") if request.method == "GET" else request.form.get("next", "")
+    error_message = None
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        email = request.form.get("email", "").strip()
+
+        if not username or not password or not email:
+            error_message = "Compila tutti i campi."
+        else:
+            created = user_service.register_user(username, password, email)
+            if created:
+                session["username"] = username
+                if next_page:
+                    return redirect(next_page)
+                return redirect(url_for("main.box"))
+            error_message = "Registrazione non riuscita. Username, email o database da controllare."
+
+    return render_template(
+        "auth.html",
+        mode="register",
+        next_page=next_page,
+        error=error_message,
+    )
+
+
+@main_blueprint.route("/logout")
+def logout():
+    session.pop("username", None)
+    return redirect(url_for("main.home"))
+
+
+@main_blueprint.route("/box")
+def box():
+    user = get_logged_user()
+    if not user:
+        return redirect(url_for("main.login", next=request.path))
+
+    raw_box_entries = box_service.get_pokemon(user["id_utente"])
+    box_entries = [
+        {
+            "id": item["id_pokemon_api"],
+            "name": item["nome_pokemon"],
+            "sprite": get_sprite_url(item["id_pokemon_api"]),
+        }
+        for item in raw_box_entries
+    ]
+    return render_template(
+        "box.html",
+        user=user,
+        box_entries=box_entries,
+    )
+
+
+@main_blueprint.route("/torre-lotta")
+def torre_lotta():
+    user = get_logged_user()
+    if not user:
+        return redirect(url_for("main.login", next=request.path))
+    previous_game, next_game = get_minigame_navigation("/torre-lotta")
+
+    box_entries = box_service.get_pokemon(user["id_utente"])
+    selection_entries = [
+        {
+            "id": item["id_pokemon_api"],
+            "name": item["nome_pokemon"],
+            "sprite": get_sprite_url(item["id_pokemon_api"]),
+        }
+        for item in box_entries
+    ]
+
+    state = get_tower_state()
+    if not state:
+        return render_template(
+            "torre_lotta.html",
+            user=user,
+            phase="team_select",
+            box_entries=selection_entries,
+            error=None,
+            battle=None,
+            badge=None,
+            previous_game=previous_game,
+            next_game=next_game,
+        )
+
+    current_battle = None
+    player_active = None
+    npc_active = None
+    if state["phase"] in {"battle", "between_battles", "victory", "defeat"}:
+        current_battle = state["npc_battles"][state["current_battle_index"]] if state["current_battle_index"] < len(state["npc_battles"]) else None
+        player_active = get_first_available_pokemon(state.get("player_team", []))
+        npc_active = get_first_available_pokemon(current_battle["team"]) if current_battle else None
+
+    return render_template(
+        "torre_lotta.html",
+        user=user,
+        phase=state["phase"],
+        box_entries=selection_entries,
+        error=state.get("error"),
+        battle=current_battle,
+        current_battle_number=state.get("current_battle_index", 0) + 1,
+        player_team=state.get("player_team", []),
+        player_active=player_active,
+        npc_active=npc_active,
+        battle_log=state.get("battle_log", []),
+        wins=state.get("wins", 0),
+        total_battles=len(state.get("npc_battles", [])),
+        badge=state.get("earned_badge"),
+        completion_message=state.get("completion_message"),
+        previous_game=previous_game,
+        next_game=next_game,
+    )
+
+
+@main_blueprint.route("/torre-lotta/start", methods=["POST"])
+def start_torre_lotta():
+    user = get_logged_user()
+    if not user:
+        return redirect(url_for("main.login", next=url_for("main.torre_lotta")))
+    previous_game, next_game = get_minigame_navigation("/torre-lotta")
+
+    box_entries = box_service.get_pokemon(user["id_utente"])
+    if len(box_entries) < 6:
+        clear_tower_state()
+        return render_template(
+            "torre_lotta.html",
+            user=user,
+            phase="team_select",
+            box_entries=[
+                {"id": item["id_pokemon_api"], "name": item["nome_pokemon"], "sprite": get_sprite_url(item["id_pokemon_api"])}
+                for item in box_entries
+            ],
+            error="Ti servono almeno 6 Pokemon nel box per entrare nella Torre Lotta.",
+            battle=None,
+            badge=None,
+            previous_game=previous_game,
+            next_game=next_game,
+        )
+
+    selected_ids = request.form.getlist("pokemon_ids")
+    selected_ids = [int(item) for item in selected_ids if item.isdigit()]
+    selected_ids = list(dict.fromkeys(selected_ids))
+    allowed_ids = {item["id_pokemon_api"] for item in box_entries}
+
+    if len(selected_ids) != 6 or not set(selected_ids).issubset(allowed_ids):
+        clear_tower_state()
+        return render_template(
+            "torre_lotta.html",
+            user=user,
+            phase="team_select",
+            box_entries=[
+                {"id": item["id_pokemon_api"], "name": item["nome_pokemon"], "sprite": get_sprite_url(item["id_pokemon_api"])}
+                for item in box_entries
+            ],
+            error="Devi selezionare esattamente 6 Pokemon dal tuo box.",
+            battle=None,
+            badge=None,
+            previous_game=previous_game,
+            next_game=next_game,
+        )
+
+    selected_map = {item["id_pokemon_api"]: item["nome_pokemon"] for item in box_entries}
+    player_team = [build_battle_pokemon(pokemon_id, selected_map[pokemon_id], TOWER_PLAYER_LEVEL, side="player") for pokemon_id in selected_ids]
+    npc_battles = build_random_npc_battles(3)
+    if len(npc_battles) < 3:
+        clear_tower_state()
+        return render_template(
+            "torre_lotta.html",
+            user=user,
+            phase="team_select",
+            box_entries=[
+                {"id": item["id_pokemon_api"], "name": item["nome_pokemon"], "sprite": get_sprite_url(item["id_pokemon_api"])}
+                for item in box_entries
+            ],
+            error="Non ci sono abbastanza NPC nel database per avviare la Torre Lotta.",
+            battle=None,
+            badge=None,
+            previous_game=previous_game,
+            next_game=next_game,
+        )
+
+    state = {
+        "phase": "battle",
+        "player_team": player_team,
+        "npc_battles": npc_battles,
+        "current_battle_index": 0,
+        "wins": 0,
+        "battle_log": ["La sfida alla Torre Lotta ha inizio."],
+        "earned_badge": None,
+        "completion_message": None,
+        "error": None,
+    }
+    set_tower_state(state)
+    return redirect(url_for("main.torre_lotta"))
+
+
+@main_blueprint.route("/torre-lotta/turn", methods=["POST"])
+def torre_lotta_turn():
+    user = get_logged_user()
+    if not user:
+        return redirect(url_for("main.login", next=url_for("main.torre_lotta")))
+
+    state = get_tower_state()
+    if not state or state.get("phase") != "battle":
+        return redirect(url_for("main.torre_lotta"))
+
+    current_battle = state["npc_battles"][state["current_battle_index"]]
+    turn_log = simulate_tower_turn(state["player_team"], current_battle["team"])
+    state["battle_log"] = turn_log
+
+    if team_is_defeated(current_battle["team"]):
+        state["wins"] += 1
+        if state["wins"] >= len(state["npc_battles"]):
+            badge_info = award_random_badge(user["id_utente"])
+            state["phase"] = "victory"
+            if badge_info and badge_info.get("filename"):
+                state["earned_badge"] = {
+                    "filename": badge_info["filename"],
+                    "url": get_badge_url(badge_info["filename"]),
+                }
+                state["completion_message"] = "Hai vinto."
+            elif badge_info and badge_info.get("already_complete"):
+                state["completion_message"] = "Hai vinto."
+            else:
+                state["completion_message"] = "Hai vinto."
+        else:
+            state["phase"] = "between_battles"
+            state["completion_message"] = "Hai vinto."
+    elif team_is_defeated(state["player_team"]):
+        state["phase"] = "defeat"
+        state["completion_message"] = "Hai perso."
+
+    set_tower_state(state)
+    return redirect(url_for("main.torre_lotta"))
+
+
+@main_blueprint.route("/torre-lotta/continue", methods=["POST"])
+def torre_lotta_continue():
+    user = get_logged_user()
+    if not user:
+        return redirect(url_for("main.login", next=url_for("main.torre_lotta")))
+
+    state = get_tower_state()
+    if not state:
+        return redirect(url_for("main.torre_lotta"))
+
+    if state.get("phase") == "between_battles":
+        state["current_battle_index"] += 1
+        state["phase"] = "battle"
+        state["completion_message"] = None
+        reset_battle_team(state["player_team"])
+        state["battle_log"] = ["La nuova sfida ha inizio."]
+        set_tower_state(state)
+    elif state.get("phase") in {"victory", "defeat"}:
+        clear_tower_state()
+
+    return redirect(url_for("main.torre_lotta"))
+
+
+@main_blueprint.route("/zona-safari")
+def zona_safari():
+    user = get_logged_user()
+    if not user:
+        return redirect(url_for("main.login", next=request.path))
+    previous_game, next_game = get_minigame_navigation("/zona-safari")
+
+    state = get_safari_state()
+    if not state or request.args.get("new") == "1":
+        state = create_safari_game()
+        if not state["encounters"]:
+            return render_template(
+                "zona_safari.html",
+                user=user,
+                game_active=False,
+                game_finished=True,
+                error="Non ci sono abbastanza sprite disponibili per avviare la Zona Safari.",
+                balls=[],
+                encounter=None,
+                result=None,
+                history=[],
+                progress_label="0 / 0",
+                saved_total=0,
+                previous_game=previous_game,
+                next_game=next_game,
+            )
+        set_safari_state(state)
+
+    encounter = get_safari_current_encounter(state)
+    total_encounters = len(state["encounters"])
+    progress_label = f"{min(state['current_index'] + 1, total_encounters)} / {total_encounters}" if total_encounters else "0 / 0"
+
+    return render_template(
+        "zona_safari.html",
+        user=user,
+        game_active=state["phase"] != "finished",
+        game_finished=state["phase"] == "finished",
+        is_last_encounter=state["current_index"] >= max(total_encounters - 1, 0),
+        balls=get_safari_ball_view(state),
+        encounter=encounter,
+        result=state.get("result"),
+        history=state.get("history", []),
+        progress_label=progress_label,
+        saved_total=len(state.get("saved_ids", [])),
+        final_message=state.get("final_message"),
+        error=None,
+        previous_game=previous_game,
+        next_game=next_game,
+    )
+
+
+@main_blueprint.route("/zona-safari/start", methods=["POST"])
+def start_zona_safari():
+    user = get_logged_user()
+    if not user:
+        return redirect(url_for("main.login", next=url_for("main.zona_safari")))
+
+    state = create_safari_game()
+    set_safari_state(state)
+    return redirect(url_for("main.zona_safari"))
+
+
+@main_blueprint.route("/zona-safari/throw", methods=["POST"])
+def zona_safari_throw():
+    user = get_logged_user()
+    if not user:
+        return redirect(url_for("main.login", next=url_for("main.zona_safari")))
+
+    state = get_safari_state()
+    if not state:
+        return redirect(url_for("main.zona_safari", new=1))
+
+    if state.get("phase") != "encounter":
+        return redirect(url_for("main.zona_safari"))
+
+    ball_slug = request.form.get("ball", "").strip()
+    if ball_slug not in SAFARI_BALLS or state["balls"].get(ball_slug, 0) <= 0:
+        return redirect(url_for("main.zona_safari"))
+
+    encounter = get_safari_current_encounter(state)
+    if not encounter:
+        finish_safari_game(state, "La partita e terminata.")
+        return redirect(url_for("main.zona_safari"))
+
+    state["balls"][ball_slug] -= 1
+    success = random.randint(1, 100) <= SAFARI_BALLS[ball_slug]["chance"]
+
+    result = {
+        "ball_label": SAFARI_BALLS[ball_slug]["label"],
+        "success": success,
+        "pokemon_id": encounter["id"],
+        "pokemon_name": encounter["name"],
+        "can_save": False,
+        "already_owned": False,
+        "saved": False,
+        "message": "",
+    }
+
+    if success:
+        existing = box_service.has_pokemon(user["id_utente"], encounter["id"])
+        if existing is None:
+            result["message"] = "Pokemon catturato, ma il box non e disponibile al momento."
+        elif existing:
+            result["already_owned"] = True
+            result["message"] = "Pokemon catturato, ma e gia presente nel tuo box."
+        else:
+            result["can_save"] = True
+            result["message"] = "Pokemon catturato. Vuoi aggiungerlo al box?"
+    else:
+        result["message"] = f"{encounter['name']} e scappato via."
+
+    state["phase"] = "result"
+    state["result"] = result
+    state["history"].append(
+        {
+            "pokemon_name": encounter["name"],
+            "pokemon_id": encounter["id"],
+            "ball_label": SAFARI_BALLS[ball_slug]["label"],
+            "success": success,
+        }
+    )
+    set_safari_state(state)
+    return redirect(url_for("main.zona_safari"))
+
+
+@main_blueprint.route("/zona-safari/save", methods=["POST"])
+def zona_safari_save():
+    user = get_logged_user()
+    if not user:
+        return redirect(url_for("main.login", next=url_for("main.zona_safari")))
+
+    state = get_safari_state()
+    if not state or state.get("phase") != "result" or not state.get("result"):
+        return redirect(url_for("main.zona_safari"))
+
+    result = state["result"]
+    if not result.get("success") or not result.get("can_save") or result.get("saved"):
+        return redirect(url_for("main.zona_safari"))
+
+    added = box_service.add_pokemon(user["id_utente"], result["pokemon_id"], result["pokemon_name"])
+    if added:
+        result["saved"] = True
+        result["can_save"] = False
+        result["message"] = "Pokemon aggiunto al box con successo."
+        state["saved_ids"].append(result["pokemon_id"])
+    else:
+        result["message"] = "Salvataggio nel box non riuscito."
+
+    state["result"] = result
+    set_safari_state(state)
+    return redirect(url_for("main.zona_safari"))
+
+
+@main_blueprint.route("/zona-safari/next", methods=["POST"])
+def zona_safari_next():
+    user = get_logged_user()
+    if not user:
+        return redirect(url_for("main.login", next=url_for("main.zona_safari")))
+
+    state = get_safari_state()
+    if not state:
+        return redirect(url_for("main.zona_safari", new=1))
+
+    if state.get("phase") == "finished":
+        return redirect(url_for("main.zona_safari"))
+
+    state["current_index"] += 1
+    state["result"] = None
+
+    if state["current_index"] >= len(state.get("encounters", [])):
+        finish_safari_game(state, "Partita conclusa. Hai visto tutti i Pokemon della Zona Safari.")
+    else:
+        state["phase"] = "encounter"
+        set_safari_state(state)
+
+    return redirect(url_for("main.zona_safari"))
 
 
 @main_blueprint.route("/")
