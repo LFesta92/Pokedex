@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Medaglie{% endblock %}
+
+{% block content %}
+<main class="page choice-page">
+    <section class="choice-hero">
+        <h1 class="home-title choice-title">Medaglie</h1>
+        <p class="choice-subtitle">{{ user.username }}, qui trovi tutte le medaglie vinte nella Torre Lotta.</p>
+    </section>
+
+    {% if badge_entries %}
+    <section class="generation-box">
+        <div class="badge-grid">
+            {% for badge in badge_entries %}
+            <div class="badge-card">
+                <img src="{{ badge.url }}" alt="{{ badge.name }}">
+                <strong>{{ badge.name }}</strong>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% else %}
+    <section class="search-box auth-box badge-empty">
+        <h2>Nessuna Medaglia</h2>
+        <p>Non hai ancora conquistato medaglie. Vinci una serie completa nella Torre Lotta per ottenerne una.</p>
+    </section>
+    {% endif %}
+</main>
+{% endblock %}

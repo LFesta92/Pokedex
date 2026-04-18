@@ -599,6 +599,35 @@ def award_random_badge(id_utente):
         cursor.close()
 
 
+def get_user_badges(id_utente):
+    connection = db_manager.get_connection()
+    if not connection:
+        return []
+
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT id_medaglia, nome_png FROM medaglia WHERE id_utente=%s ORDER BY id_medaglia DESC",
+            (id_utente,),
+        )
+        rows = cursor.fetchall()
+        return [
+            {
+                "id": row["id_medaglia"],
+                "filename": row["nome_png"],
+                "url": get_badge_url(row["nome_png"]),
+                "name": Path(row["nome_png"]).stem.replace("-", " ").replace("_", " ").title(),
+            }
+            for row in rows
+            if row.get("nome_png")
+        ]
+    except Exception as error:
+        print(f"Recupero medaglie non riuscito {error}")
+        return []
+    finally:
+        cursor.close()
+
+
 def get_logged_user():
     username = session.get("username")
     if not username:
@@ -805,6 +834,20 @@ def box():
         "box.html",
         user=user,
         box_entries=box_entries,
+    )
+
+
+@main_blueprint.route("/medaglie")
+def medaglie():
+    user = get_logged_user()
+    if not user:
+        return redirect(url_for("main.login", next=request.path))
+
+    badge_entries = get_user_badges(user["id_utente"])
+    return render_template(
+        "medaglie.html",
+        user=user,
+        badge_entries=badge_entries,
     )
 
 

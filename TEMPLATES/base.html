@@ -14,9 +14,16 @@
             <a class="home-button" href="/">Home</a>
             <div class="account-actions">
                 {% if session.get("username") %}
-                <span class="account-greeting">Ciao! {{ session.get("username") }}</span>
-                <a class="account-button" href="/box">Box</a>
-                <a class="account-button" href="/logout">Logout</a>
+                <div class="account-panel">
+                    <div class="account-panel-row">
+                        <span class="account-greeting">Ciao! {{ session.get("username") }}</span>
+                        <a class="account-button" href="/logout">Logout</a>
+                    </div>
+                    <div class="account-panel-row">
+                        <a class="account-button" href="/box">Box</a>
+                        <a class="account-button" href="/medaglie">Medaglie</a>
+                    </div>
+                </div>
                 {% else %}
                 <a class="account-button" href="/login">Login</a>
                 <a class="account-button" href="/register">Registrati</a>
