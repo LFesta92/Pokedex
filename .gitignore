@@ -1,0 +1,17 @@
+# Ambiente virtuale e cache Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# File locali e sensibili
+.env
+database.db
+
+# Cache specifiche del progetto
+database/__pycache__/
+services/__pycache__/
+
+# File di sistema/editor
+.DS_Store
+Thumbs.db
+.vscode/

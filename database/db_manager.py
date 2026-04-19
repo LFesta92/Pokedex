@@ -1,18 +1,17 @@
 import os
 from pathlib import Path
-
 import mysql.connector
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-#classe per la connessione ad DB
+# Gestisce una singola connessione MySQL riutilizzabile nell'app.
 class DatabaseManager:
     def __init__(self):
-        self.connection=None
+        self.connection = None
 
-#metodo per instaurare la connessione
     def connect(self):
+        # Se la connessione e gia aperta, la riutilizziamo.
         if self.connection and self.connection.is_connected():
             return self.connection
 
@@ -29,14 +28,13 @@ class DatabaseManager:
             print(f"Connessione MySQL non riuscita: {error}")
             self.connection = None
             return None
-    
-    #avvio la connessione
+
     def get_connection(self):
+        # Punto di accesso unico usato dai service.
         return self.connect()
-    
-    #chiusura delle connessione
+
     def close_connection(self):
+        # Chiude la connessione solo se e davvero attiva.
         if self.connection and self.connection.is_connected():
             self.connection.close()
             self.connection = None
-

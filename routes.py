@@ -10,6 +10,7 @@ from services.box_service import BoxServices
 from services.user_service import UserService
 
 
+# Blueprint principale dell'app: raccoglie pagine, API interne e minigiochi.
 main_blueprint = Blueprint("main", __name__)
 POKEAPI_BASE_URL = "https://pokeapi.co/api/v2"
 SPRITES_DIR = Path(__file__).resolve().parent / "sprites" / "sprites" / "pokemon"
@@ -99,12 +100,15 @@ SAFARI_BALLS = {
 }
 TOWER_MAX_HP = 120
 TOWER_PLAYER_LEVEL = 62
+
+# Service condivisi tra le varie route.
 db_manager = DatabaseManager()
 user_service = UserService(db_manager)
 box_service = BoxServices(db_manager)
 
 
 def fetch_json(url, params=None):
+    # Wrapper leggero per interrogare PokeAPI senza usare proxy locali.
     if params:
         url = f"{url}?{parse.urlencode(params)}"
 
@@ -137,6 +141,7 @@ def get_localized_value(entries, language, value_key):
 
 
 def get_pokemon(identifier):
+    # Costruisce l'oggetto completo usato nella pagina del Pokedex.
     data = fetch_json(f"{POKEAPI_BASE_URL}/pokemon/{identifier}")
     species = fetch_json(data["species"]["url"])
 
@@ -209,6 +214,7 @@ def get_pokemon(identifier):
 
 
 def get_ability_details(identifier):
+    # Recupera il testo abilita con priorita all'italiano e fallback inglese.
     data = fetch_json(f"{POKEAPI_BASE_URL}/ability/{identifier}")
 
     effect_entries = data.get("effect_entries", [])
@@ -252,6 +258,7 @@ def get_badge_url(filename):
 
 
 def get_generation_pokemon(start_id, end_id):
+    # Usa limit/offset di PokeAPI per popolare la griglia di una generazione.
     offset = start_id - 1
     limit = end_id - start_id + 1
     data = fetch_json(f"{POKEAPI_BASE_URL}/pokemon", params={"limit": limit, "offset": offset})
@@ -336,6 +343,7 @@ def get_minigame_navigation(path_name):
 
 
 def get_form_choices_for_species(species_name):
+    # Se una specie ha piu varianti, prepara le opzioni per la pagina di scelta.
     species = fetch_json(f"{POKEAPI_BASE_URL}/pokemon-species/{species_name}")
     choices = []
 
@@ -364,6 +372,7 @@ def get_form_choices_for_species(species_name):
 
 
 def resolve_search(query):
+    # Normalizza una ricerca e decide se andare diretti, mostrare forme o dare errore.
     normalized_query = normalize_search_query(query)
 
     if not normalized_query:
@@ -414,6 +423,7 @@ def get_adjacent_pokemon_ids(pokemon_id):
 
 
 def build_battle_pokemon(pokemon_id, display_name=None, level=TOWER_PLAYER_LEVEL, side="player"):
+    # Converte un Pokemon in una struttura semplificata per la Torre Lotta.
     data = fetch_json(f"{POKEAPI_BASE_URL}/pokemon/{pokemon_id}")
     total_stats = sum(item["base_stat"] for item in data["stats"])
     speed_value = next((item["base_stat"] for item in data["stats"] if item["stat"]["name"] == "speed"), 50)
@@ -448,6 +458,7 @@ def team_is_defeated(team):
 
 
 def calculate_tower_damage(attacker, defender):
+    # Danno semplificato: stesso HP per tutti, differenza reale nelle statistiche totali.
     base_damage = (attacker["total_stats"] / 8) + (attacker["level"] / 6) - (defender["total_stats"] / 110)
     damage = max(24, round(base_damage * random.uniform(0.94, 1.1)))
     critical = random.random() < 0.08
@@ -457,6 +468,7 @@ def calculate_tower_damage(attacker, defender):
 
 
 def simulate_tower_turn(player_team, npc_team):
+    # Simula un turno completo tenendo conto della velocita del Pokemon attivo.
     log = []
     player_active = get_first_available_pokemon(player_team)
     npc_active = get_first_available_pokemon(npc_team)
@@ -502,6 +514,7 @@ def clear_tower_state():
 
 
 def get_npc_pool():
+    # Legge dal database tutti gli NPC e le loro squadre per Torre Lotta.
     connection = db_manager.get_connection()
     if not connection:
         return []
@@ -542,6 +555,7 @@ def get_npc_pool():
 
 
 def build_random_npc_battles(total=3):
+    # Seleziona gli avversari della run corrente senza ripetizioni.
     npc_pool = get_npc_pool()
     if len(npc_pool) < total:
         return []
@@ -568,6 +582,7 @@ def get_badge_filenames():
 
 
 def award_random_badge(id_utente):
+    # Assegna una nuova medaglia solo se l'utente non la possiede gia.
     badge_filenames = get_badge_filenames()
     if not badge_filenames:
         return None
@@ -600,6 +615,7 @@ def award_random_badge(id_utente):
 
 
 def get_user_badges(id_utente):
+    # Prepara le medaglie in formato gia pronto per il template.
     connection = db_manager.get_connection()
     if not connection:
         return []
@@ -629,6 +645,7 @@ def get_user_badges(id_utente):
 
 
 def get_logged_user():
+    # Traduce la sessione Flask in utente reale del database.
     username = session.get("username")
     if not username:
         return None
@@ -673,6 +690,7 @@ def build_safari_encounters(total=5):
 
 
 def create_safari_game():
+    # Crea una nuova partita Safari con incontri e scorte iniziali delle Ball.
     return {
         "encounters": build_safari_encounters(),
         "current_index": 0,
@@ -721,6 +739,7 @@ def get_safari_current_encounter(state):
 
 
 def finish_safari_game(state, extra_message=None):
+    # Chiude la sessione Safari mantenendo solo il messaggio finale da mostrare.
     state["phase"] = "finished"
     if extra_message:
         state["final_message"] = extra_message
@@ -754,6 +773,7 @@ def ability_details(slug):
 
 @main_blueprint.route("/login", methods=["GET", "POST"])
 def login():
+    # Login classico con redirect alla pagina richiesta in precedenza.
     next_page = request.args.get("next", "") if request.method == "GET" else request.form.get("next", "")
     error_message = None
 
@@ -782,6 +802,7 @@ def login():
 
 @main_blueprint.route("/register", methods=["GET", "POST"])
 def register():
+    # La registrazione salva l'utente e avvia subito la sessione se va a buon fine.
     next_page = request.args.get("next", "") if request.method == "GET" else request.form.get("next", "")
     error_message = None
 
@@ -817,6 +838,7 @@ def logout():
 
 @main_blueprint.route("/box")
 def box():
+    # Mostra il box personale usando solo i Pokemon catturati dall'utente loggato.
     user = get_logged_user()
     if not user:
         return redirect(url_for("main.login", next=request.path))
@@ -839,6 +861,7 @@ def box():
 
 @main_blueprint.route("/medaglie")
 def medaglie():
+    # Pagina collezione medaglie ottenute in Torre Lotta.
     user = get_logged_user()
     if not user:
         return redirect(url_for("main.login", next=request.path))
@@ -853,6 +876,7 @@ def medaglie():
 
 @main_blueprint.route("/torre-lotta")
 def torre_lotta():
+    # Schermata principale della Torre: selezione squadra o stato della run attiva.
     user = get_logged_user()
     if not user:
         return redirect(url_for("main.login", next=request.path))
@@ -913,6 +937,7 @@ def torre_lotta():
 
 @main_blueprint.route("/torre-lotta/start", methods=["POST"])
 def start_torre_lotta():
+    # Avvia una run di tre scontri partendo da sei Pokemon del box utente.
     user = get_logged_user()
     if not user:
         return redirect(url_for("main.login", next=url_for("main.torre_lotta")))
@@ -995,6 +1020,7 @@ def start_torre_lotta():
 
 @main_blueprint.route("/torre-lotta/turn", methods=["POST"])
 def torre_lotta_turn():
+    # Esegue un turno della battaglia corrente e aggiorna lo stato in sessione.
     user = get_logged_user()
     if not user:
         return redirect(url_for("main.login", next=url_for("main.torre_lotta")))
@@ -1035,6 +1061,7 @@ def torre_lotta_turn():
 
 @main_blueprint.route("/torre-lotta/continue", methods=["POST"])
 def torre_lotta_continue():
+    # Porta il giocatore allo scontro successivo o chiude la run terminata.
     user = get_logged_user()
     if not user:
         return redirect(url_for("main.login", next=url_for("main.torre_lotta")))
@@ -1058,6 +1085,7 @@ def torre_lotta_continue():
 
 @main_blueprint.route("/zona-safari")
 def zona_safari():
+    # Pagina principale del minigioco di cattura.
     user = get_logged_user()
     if not user:
         return redirect(url_for("main.login", next=request.path))
@@ -1120,6 +1148,7 @@ def start_zona_safari():
 
 @main_blueprint.route("/zona-safari/throw", methods=["POST"])
 def zona_safari_throw():
+    # Consuma una Ball, calcola la cattura e prepara l'eventuale salvataggio nel box.
     user = get_logged_user()
     if not user:
         return redirect(url_for("main.login", next=url_for("main.zona_safari")))
@@ -1183,6 +1212,7 @@ def zona_safari_throw():
 
 @main_blueprint.route("/zona-safari/save", methods=["POST"])
 def zona_safari_save():
+    # Salva nel box solo i Pokemon catturati e non gia posseduti.
     user = get_logged_user()
     if not user:
         return redirect(url_for("main.login", next=url_for("main.zona_safari")))
@@ -1236,6 +1266,7 @@ def zona_safari_next():
 
 @main_blueprint.route("/")
 def home():
+    # Home del progetto: ricerca rapida, generazioni e minigiochi.
     query = request.args.get("pokemon", "").strip()
     error_message = None
 
@@ -1259,6 +1290,7 @@ def home():
 
 @main_blueprint.route("/pokedex")
 def pokedex():
+    # Pagina scheda completa del Pokemon selezionato.
     raw_query = request.args.get("pokemon", "").strip()
     error_message = None
     pokemon = None
@@ -1305,6 +1337,7 @@ def pokedex():
 
 @main_blueprint.route("/choose-form")
 def choose_form():
+    # Se una ricerca e ambigua, qui l'utente sceglie la forma corretta.
     query = request.args.get("pokemon", "").strip()
     if not query:
         return redirect(url_for("main.home"))
@@ -1331,6 +1364,7 @@ def choose_form():
 
 
 def render_generation_page(generation_name, start_id, end_id, page_name, pokemon_ids=None, range_label=None, description=None):
+    # Template unico usato sia dalle generazioni classiche sia dalle forme speciali.
     query = request.args.get("pokemon", "").strip()
     error_message = None
     generation_title = get_generation_display_name(generation_name)
