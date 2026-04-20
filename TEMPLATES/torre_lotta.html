@@ -10,7 +10,8 @@
             <h1 class="home-title choice-title generation-title">Torre Lotta</h1>
             <a class="generation-arrow" href="{{ next_game.href }}" aria-label="Vai a {{ next_game.label }}">&#8250;</a>
         </div>
-        <p class="choice-subtitle">Scegli 6 Pokemon dal tuo box, affronta 3 NPC casuali e conquista una medaglia se vinci tutta la serie.</p>
+        <p class="choice-subtitle">Scegli 6 Pokemon dal tuo box e affronta 3 NPC casuali: se vinci tutte le lotte otterrai una medaglia!
+            Conquistale tutte per diventare Campione!</p>
     </section>
 
     {% if phase == "team_select" %}
@@ -33,7 +34,7 @@
                 </label>
                 {% endfor %}
             </div>
-            <button type="submit" class="safari-reset-button">Inizia La Torre</button>
+            <button type="submit" class="safari-reset-button">Avvia gioco</button>
         </form>
         {% else %}
         <div class="message error">Il tuo box e vuoto. Prima cattura dei Pokemon nella Zona Safari.</div>
@@ -126,7 +127,7 @@
             <div class="tower-badge-box">
                 <h3>Nuova Medaglia Ottenuta</h3>
                 <img src="{{ badge.url }}" alt="{{ badge.filename }}">
-                <p>{{ badge.filename }}</p>
+                <p>{{ badge.name or badge.filename }}</p>
             </div>
             {% endif %}
         </div>

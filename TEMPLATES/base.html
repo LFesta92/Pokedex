@@ -32,5 +32,31 @@
         </div>
         {% block content %}{% endblock %}
     </div>
+    <script>
+        (() => {
+            const topActions = document.querySelector(".top-actions");
+            if (!topActions) return;
+
+            let lastScrollY = window.scrollY;
+
+            const syncTopActions = () => {
+                const currentScrollY = window.scrollY;
+                const scrollingDown = currentScrollY > lastScrollY;
+
+                if (currentScrollY <= 24) {
+                    topActions.classList.remove("is-hidden");
+                } else if (scrollingDown && currentScrollY > 120) {
+                    topActions.classList.add("is-hidden");
+                } else if (!scrollingDown) {
+                    topActions.classList.remove("is-hidden");
+                }
+
+                lastScrollY = currentScrollY;
+            };
+
+            window.addEventListener("scroll", syncTopActions, { passive: true });
+            syncTopActions();
+        })();
+    </script>
 </body>
 </html>

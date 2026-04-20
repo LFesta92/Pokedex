@@ -37,18 +37,35 @@ body.modal-open {
 .site-shell {
     min-height: 100vh;
     position: relative;
+    padding-top: 6.35rem;
 }
 
 .top-actions {
-    position: relative;
-    z-index: 20;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    min-height: 5.4rem;
+    padding: 1rem;
+    pointer-events: none;
+    transition: transform 220ms ease, opacity 220ms ease;
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.top-actions.is-hidden {
+    transform: translateY(-120%);
+    opacity: 0;
 }
 
 .home-button {
-    position: fixed;
-    top: 1rem;
-    left: 1rem;
-    z-index: 20;
+    position: static;
+    z-index: 41;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -62,16 +79,16 @@ body.modal-open {
     font-weight: 800;
     font-size: 1rem;
     letter-spacing: 0.02em;
+    pointer-events: auto;
 }
 
 .account-actions {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
+    position: static;
     display: flex;
     align-items: flex-start;
     gap: 0.65rem;
-    z-index: 20;
+    z-index: 41;
+    pointer-events: auto;
 }
 
 .account-panel {
@@ -112,7 +129,7 @@ body.modal-open {
 .page {
     width: min(960px, calc(100% - 2rem));
     margin: 0 auto;
-    padding: 2rem 0 3rem;
+    padding: 1rem 0 3rem;
 }
 
 .hero-box,
@@ -319,6 +336,10 @@ form {
     text-decoration: none;
 }
 
+.safari-game-card img {
+    object-position: center 36%;
+}
+
 .safari-page {
     width: min(1120px, calc(100% - 2rem));
 }
@@ -457,14 +478,21 @@ form {
 
 .safari-ball-button {
     width: 100%;
-    min-height: 110px;
-    padding: 1rem;
+    min-height: 128px;
+    padding: 1rem 0.85rem;
     background: rgba(255, 255, 255, 0.92);
     color: #0f172a;
     display: grid;
-    gap: 0.35rem;
+    gap: 0.25rem;
     text-align: center;
+    justify-items: center;
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+}
+
+.safari-ball-button img {
+    width: 58px;
+    height: 58px;
+    object-fit: contain;
 }
 
 .safari-ball-button small {
@@ -518,13 +546,11 @@ form {
     color: #8deeff;
 }
 
-.safari-side-balls,
 .safari-history {
     display: grid;
     gap: 0.75rem;
 }
 
-.safari-side-ball,
 .safari-history-item {
     padding: 0.9rem 1rem;
     border-radius: 14px;
@@ -532,16 +558,19 @@ form {
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.safari-side-ball {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-weight: 700;
-}
-
 .safari-history-item {
     display: grid;
     gap: 0.25rem;
+}
+
+.safari-history-item.success {
+    border-color: rgba(115, 255, 173, 0.24);
+    background: rgba(18, 79, 56, 0.34);
+}
+
+.safari-history-item.fail {
+    border-color: rgba(255, 171, 171, 0.24);
+    background: rgba(90, 22, 22, 0.34);
 }
 
 .safari-history-item span,
@@ -550,7 +579,7 @@ form {
 }
 
 .tower-page {
-    width: min(1180px, calc(100% - 2rem));
+    width: min(1480px, calc(100% - 2rem));
 }
 
 .tower-toolbar {
@@ -568,6 +597,12 @@ form {
     margin-bottom: 0.35rem;
 }
 
+.tower-select-box {
+    width: min(1440px, 100%);
+    max-width: none;
+    margin: 0 auto;
+}
+
 .tower-selection-form {
     display: grid;
     gap: 1rem;
@@ -575,40 +610,75 @@ form {
 
 .tower-team-grid {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 0.9rem;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1.2rem;
+    align-items: stretch;
 }
 
 .tower-team-card {
     position: relative;
     display: grid;
-    gap: 0.55rem;
+    grid-template-rows: 60px 108px minmax(64px, auto);
+    gap: 0.5rem;
     justify-items: center;
-    padding: 1rem 0.75rem;
+    align-items: center;
+    min-height: 246px;
+    min-width: 100;
+    padding: 1.1rem 1rem 1.15rem;
     border-radius: 18px;
     background: rgba(8, 15, 32, 0.72);
     border: 1px solid rgba(141, 238, 255, 0.24);
     color: #ffffff;
     cursor: pointer;
+    box-shadow: 0 14px 30px rgba(0, 12, 24, 0.22);
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .tower-team-card input {
-    position: absolute;
-    top: 0.85rem;
-    right: 0.85rem;
-    width: 20px;
-    height: 20px;
+    position: static;
+    width: 22px;
+    height: 22px;
+    margin: 0;
+    accent-color: #4dd9ff;
+    justify-self: center;
 }
 
 .tower-team-card img {
-    width: 84px;
-    height: 84px;
+    width: 112px;
+    height: 112px;
     object-fit: contain;
     image-rendering: pixelated;
+    align-self: center;
+    justify-self: center;
+    filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.28));
 }
 
 .tower-team-card strong {
     text-align: center;
+    align-self: start;
+    display: grid;
+    place-items: center;
+    min-height: 64px;
+    line-height: 1.12;
+    font-size: 1.05rem;
+    text-wrap: balance;
+    max-width: 100%;
+}
+
+.tower-team-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(141, 238, 255, 0.42);
+    box-shadow: 0 18px 34px rgba(0, 16, 36, 0.32);
+}
+
+.tower-team-card:has(input:checked) {
+    border-color: rgba(109, 240, 255, 0.78);
+    background:
+        radial-gradient(circle at top, rgba(102, 233, 255, 0.16), transparent 46%),
+        rgba(8, 15, 32, 0.88);
+    box-shadow:
+        0 0 0 2px rgba(109, 240, 255, 0.18),
+        0 18px 34px rgba(0, 16, 36, 0.34);
 }
 
 .tower-battle-layout {
@@ -980,6 +1050,15 @@ form {
     width: min(1040px, calc(100% - 2rem));
 }
 
+.choice-page.tower-page {
+    width: min(1480px, calc(100vw - 4rem));
+}
+
+.search-box.auth-box.tower-select-box {
+    width: min(1440px, calc(100vw - 6rem));
+    max-width: none;
+}
+
 .choice-hero {
     margin-bottom: 1.4rem;
     text-align: center;
@@ -1069,9 +1148,12 @@ form {
 
 .generation-title-row {
     display: grid;
-    grid-template-columns: 72px 1fr 72px;
+    grid-template-columns: 72px minmax(0, max-content) 72px;
     align-items: center;
-    gap: 1rem;
+    justify-content: center;
+    gap: 0.75rem;
+    max-width: min(100%, 720px);
+    margin: 0 auto;
 }
 
 .generation-title {

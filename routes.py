@@ -90,9 +90,14 @@ GENERATION_CARDS = [
     {"label": "Forme Giga-Max", "image": "img/gigamax.png", "href": "gigamax-forms.html"},
 ]
 GAME_CARDS = [
-    {"label": "Zona Safari", "image": "img/catturali-tutti.png", "href": "/zona-safari"},
+    {"label": "Zona Safari", "image": "img/zona-safari-tauros.png", "href": "/zona-safari"},
     {"label": "Torre Lotta", "image": "img/vs.png", "href": "/torre-lotta"},
 ]
+SAFARI_BALL_ICONS = {
+    "pokeball": "poke-ball.png",
+    "megaball": "great-ball.png",
+    "ultraball": "ultra-ball.png",
+}
 SAFARI_BALLS = {
     "pokeball": {"label": "Poke Ball", "chance": 40, "count": 2},
     "megaball": {"label": "Mega Ball", "chance": 50, "count": 2},
@@ -255,6 +260,10 @@ def get_sprite_url(pokemon_id):
 
 def get_badge_url(filename):
     return f"/badge-assets/{filename}"
+
+
+def get_item_asset_url(filename):
+    return f"/item-assets/{filename}"
 
 
 def get_generation_pokemon(start_id, end_id):
@@ -725,6 +734,7 @@ def get_safari_ball_view(state):
                 "label": meta["label"],
                 "chance": meta["chance"],
                 "remaining": state["balls"].get(slug, 0),
+                "icon": get_item_asset_url(SAFARI_BALL_ICONS[slug]),
             }
         )
     return view
@@ -754,6 +764,11 @@ def pokemon_sprite(filename):
 @main_blueprint.route("/badge-assets/<path:filename>")
 def badge_asset(filename):
     return send_from_directory(BADGES_DIR, filename)
+
+
+@main_blueprint.route("/item-assets/<path:filename>")
+def item_asset(filename):
+    return send_from_directory(ITEMS_DIR, filename)
 
 
 @main_blueprint.route("/type-icons/<path:filename>")
@@ -914,6 +929,17 @@ def torre_lotta():
         player_active = get_first_available_pokemon(state.get("player_team", []))
         npc_active = get_first_available_pokemon(current_battle["team"]) if current_battle else None
 
+    earned_badge = state.get("earned_badge")
+    if state.get("phase") == "victory" and not earned_badge:
+        latest_badges = get_user_badges(user["id_utente"])
+        if latest_badges:
+            latest_badge = latest_badges[0]
+            earned_badge = {
+                "filename": latest_badge["filename"],
+                "url": latest_badge["url"],
+                "name": latest_badge["name"],
+            }
+
     return render_template(
         "torre_lotta.html",
         user=user,
@@ -928,7 +954,7 @@ def torre_lotta():
         battle_log=state.get("battle_log", []),
         wins=state.get("wins", 0),
         total_battles=len(state.get("npc_battles", [])),
-        badge=state.get("earned_badge"),
+        badge=earned_badge,
         completion_message=state.get("completion_message"),
         previous_game=previous_game,
         next_game=next_game,
@@ -1042,11 +1068,23 @@ def torre_lotta_turn():
                 state["earned_badge"] = {
                     "filename": badge_info["filename"],
                     "url": get_badge_url(badge_info["filename"]),
+                    "name": Path(badge_info["filename"]).stem.replace("-", " ").replace("_", " ").title(),
                 }
+                state["battle_log"] = turn_log + [f"Hai ottenuto la medaglia {state['earned_badge']['name']}."]
                 state["completion_message"] = "Hai vinto."
             elif badge_info and badge_info.get("already_complete"):
+                state["battle_log"] = turn_log + ["Hai completato la Torre, ma possiedi gia tutte le medaglie disponibili."]
                 state["completion_message"] = "Hai vinto."
             else:
+                latest_badges = get_user_badges(user["id_utente"])
+                if latest_badges:
+                    latest_badge = latest_badges[0]
+                    state["earned_badge"] = {
+                        "filename": latest_badge["filename"],
+                        "url": latest_badge["url"],
+                        "name": latest_badge["name"],
+                    }
+                    state["battle_log"] = turn_log + [f"Hai ottenuto la medaglia {latest_badge['name']}."]
                 state["completion_message"] = "Hai vinto."
         else:
             state["phase"] = "between_battles"
@@ -1194,7 +1232,7 @@ def zona_safari_throw():
             result["can_save"] = True
             result["message"] = "Pokemon catturato. Vuoi aggiungerlo al box?"
     else:
-        result["message"] = f"{encounter['name']} e scappato via."
+        result["message"] = f"{encounter['name']} è scappato via."
 
     state["phase"] = "result"
     state["result"] = result

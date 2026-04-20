@@ -10,7 +10,9 @@
             <h1 class="home-title choice-title generation-title">Zona Safari</h1>
             <a class="generation-arrow" href="{{ next_game.href }}" aria-label="Vai a {{ next_game.label }}">&#8250;</a>
         </div>
-        <p class="choice-subtitle">Hai 5 Ball per 5 incontri misteriosi. Ogni Pokemon appare uno alla volta: scegli bene quando usare le Ball migliori.</p>
+        <p class="choice-subtitle">Hai 5 Ball per 5 incontri misteriosi. Ogni Pokemon appare uno alla volta: scegli bene quando usare le Ball migliori.
+            Se catturi il Pokèmon potrai aggiungerlo alla tua collezione!
+        </p>
     </section>
 
     {% if error %}
@@ -72,6 +74,7 @@
                 <form method="post" action="/zona-safari/throw" class="safari-ball-form">
                     <input type="hidden" name="ball" value="{{ ball.slug }}">
                     <button type="submit" class="safari-ball-button" {% if ball.remaining == 0 %}disabled{% endif %}>
+                        <img src="{{ ball.icon }}" alt="{{ ball.label }}">
                         <span>{{ ball.label }}</span>
                         <small>Tasso {{ ball.chance }}%</small>
                         <strong>x{{ ball.remaining }}</strong>
@@ -84,7 +87,7 @@
             {% if game_finished %}
             <div class="safari-finished-box">
                 <h3>Partita Conclusa</h3>
-                <p>{{ final_message or 'La tua avventura nella Zona Safari e terminata.' }}</p>
+                <p>{{ final_message or 'La tua avventura nella Zona Safari é terminata.' }}</p>
                 <form method="post" action="/zona-safari/start">
                     <button type="submit" class="safari-reset-button">Gioca Ancora</button>
                 </form>
@@ -93,27 +96,17 @@
         </div>
 
         <aside class="safari-side-card">
-            <h3>Le Tue Ball</h3>
-            <div class="safari-side-balls">
-                {% for ball in balls %}
-                <div class="safari-side-ball">
-                    <span>{{ ball.label }}</span>
-                    <strong>{{ ball.remaining }}</strong>
-                </div>
-                {% endfor %}
-            </div>
-
-            <h3>Ultimi Tentativi</h3>
+            <h3>Cronologia Incontri</h3>
             <div class="safari-history">
                 {% if history %}
                     {% for item in history|reverse %}
-                    <div class="safari-history-item">
+                    <div class="safari-history-item {{ 'success' if item.success else 'fail' }}">
                         <strong>#{{ item.pokemon_id }} {{ item.pokemon_name }}</strong>
-                        <span>{{ item.ball_label }} - {{ 'Catturato' if item.success else 'Fuggito' }}</span>
+                        <span>{{ item.ball_label }} - {{ 'Catturato' if item.success else 'Scappato' }}</span>
                     </div>
                     {% endfor %}
                 {% else %}
-                <p>Nessun tentativo ancora.</p>
+                <p>Nessun incontro ancora.</p>
                 {% endif %}
             </div>
         </aside>

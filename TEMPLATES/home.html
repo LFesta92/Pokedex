@@ -41,7 +41,7 @@
         <p class="home-section-title">Sezione Giochi</p>
         <div class="game-grid">
             {% for game in games %}
-            <a class="generation-card game-card" href="{{ game.href }}">
+            <a class="generation-card game-card {% if game.label == 'Zona Safari' %}safari-game-card{% endif %}" href="{{ game.href }}">
                 <img src="{{ url_for('static', filename=game.image) }}" alt="{{ game.label }}">
                 <span>{{ game.label }}</span>
             </a>
